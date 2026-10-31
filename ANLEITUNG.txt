@@ -54,7 +54,13 @@ ZIP/EXE-Upload und Download zeigen ein Fortschrittsfenster mit Prozenten.
 erscheint eine Sicherheitsabfrage (Ja = schließen und Übertragungen\nabbrechen; Nein = Launcher geöffnet lassen). Unvollständige
 Downloads werden als .part-Dateien gespeichert und bei Abbruch gelöscht.
 Bereits vorhandene .part-Dateien von älteren Versionen ggf. manuell löschen.
-Ein Spiel in der Bibliothek auswählen und "Nur Paket herunterladen" anklicken.
+Ein Spiel in der Bibliothek anklicken: Es öffnet sich ein Aktionsfenster
+mit "Starten", "Herunterladen und installieren", "Nur Paket herunterladen"
+und "Vom Server löschen (Admin)".
+"Starten" öffnet die bekannte Spiel-EXE. Ist noch keine hinterlegt,
+kannst du einmalig eine lokale EXE auswählen. Die Zuordnung wird in
+den lokalen Einstellungen gespeichert. Nach ZIP-Installation wird eine
+erkannte/ausgewählte EXE automatisch als Startpfad hinterlegt.
 NEU: "Herunterladen und installieren" lädt das gewählte Spiel herunter.
 - ZIP: Installationsbasisordner auswählen; ZIP wird automatisch in einen
   neuen Unterordner mit dem Spielnamen entpackt. Anschließend sucht der
@@ -67,7 +73,7 @@ NEU: "Herunterladen und installieren" lädt das gewählte Spiel herunter.
 - Unvollständige Downloads werden entfernt. Bereits vorhandene Dateien
   im Installationsordner werden nicht überschrieben.
 - Die Installation registriert derzeit noch keinen Spielstart im Launcher.
-SPIEL LÖSCHEN (ADMIN): Spiel in der Bibliothek markieren, unten
+SPIEL LÖSCHEN (ADMIN): Spiel in der Bibliothek anklicken, im Popup
 "Spiel vom Server löschen (Admin)" anklicken und Warnung bestätigen.
 Dies entfernt den Bibliothekseintrag und das Paket aus Packages\ dauerhaft.
 Der Admin-Schlüssel muss gültig sein. Bereits heruntergeladene Dateien
