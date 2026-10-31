@@ -54,9 +54,14 @@ ZIP/EXE-Upload und Download zeigen ein Fortschrittsfenster mit Prozenten.
 erscheint eine Sicherheitsabfrage (Ja = schließen und Übertragungen\nabbrechen; Nein = Launcher geöffnet lassen). Unvollständige
 Downloads werden als .part-Dateien gespeichert und bei Abbruch gelöscht.
 Bereits vorhandene .part-Dateien von älteren Versionen ggf. manuell löschen.
+Das Hauptfenster und das separate Spielaktionsfenster sind größer.
+Die Spielebibliothek ist alphabetisch sortiert. Wenn keine Auswahl aktiv ist,
+wird das zuletzt geöffnete Spiel markiert, sonst das alphabetisch erste.
 Ein Spiel in der Bibliothek anklicken: Es öffnet sich ein Aktionsfenster
-mit "Starten", "Herunterladen und installieren", "Nur Paket herunterladen"
-und "Vom Server löschen (Admin)".
+mit einem eigenen Aktionen-Block: "Starten", "Herunterladen und installieren",
+"Nur Paket herunterladen"
+und "Vom Server löschen (Admin)". Ein Doppelklick auf das bereits
+markierte Spiel öffnet das Aktionsfenster erneut.
 "Starten" öffnet die bekannte Spiel-EXE. Ist noch keine hinterlegt,
 kannst du einmalig eine lokale EXE auswählen. Die Zuordnung wird in
 den lokalen Einstellungen gespeichert. Nach ZIP-Installation wird eine
