@@ -103,12 +103,15 @@ public partial class MainWindow : Window
         catch (Exception ex) { StatusText.Text = "Admin-Prüfung fehlgeschlagen: " + ex.Message; return; }
         var dialog = new OpenFileDialog { Filter = "Spielepakete (*.zip;*.exe)|*.zip;*.exe" };
         if (dialog.ShowDialog() != true) return;
+        var popup = new TransferProgressWindow("Upload: " + Path.GetFileName(dialog.FileName)) { Owner = this };
+        popup.Show();
         try
         {
             using var request = AdminRequest(HttpMethod.Post, "/api/admin/upload");
             using var multipart = new MultipartFormDataContent();
             using var file = File.OpenRead(dialog.FileName);
-            using var stream = new StreamContent(file);
+            using var stream = new ProgressStreamContent(file,
+                (sent, total) => Dispatcher.InvokeAsync(() => popup.Update(sent, total)), popup.Cancellation);
             stream.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
             multipart.Add(stream, "file", Path.GetFileName(dialog.FileName));
             multipart.Add(new StringContent(GameNameBox.Text), "name");
@@ -116,27 +119,57 @@ public partial class MainWindow : Window
             request.Content = multipart;
             using var uploadClient = new HttpClient { Timeout = TimeSpan.FromHours(2) };
             StatusText.Text = "Upload läuft …";
-            using var response = await uploadClient.SendAsync(request);
+            using var response = await uploadClient.SendAsync(request, popup.Cancellation);
+            popup.Finishing();
             StatusText.Text = response.IsSuccessStatusCode ? "Spiel hochgeladen." : "Upload fehlgeschlagen (HTTP " + (int)response.StatusCode + "): " + await response.Content.ReadAsStringAsync();
             if (response.IsSuccessStatusCode) await RefreshAsync();
         }
-        catch (Exception ex) { StatusText.Text = ex.Message; }
+        catch (OperationCanceledException) { StatusText.Text = "Upload abgebrochen."; }
+        catch (Exception ex) { StatusText.Text = "Upload fehlgeschlagen: " + ex.Message; }
+        finally { popup.Close(); }
     }
+
     private async void Download_Click(object sender, RoutedEventArgs e)
     {
         if (server is null || GamesList.SelectedItem is not GameInfo game) { StatusText.Text = "Bitte ein Spiel auswählen."; return; }
-        var dialog = new SaveFileDialog { FileName = game.Name + ".zip", Filter = "Alle Dateien|*.*" };
-        if (dialog.ShowDialog() != true) return;
+        var popup = new TransferProgressWindow("Download: " + game.Name) { Owner = this };
+        popup.Show();
+        string? outputPath = null;
         try
         {
-            StatusText.Text = "Download läuft …";
-            using var response = await http.GetAsync(server + "/api/games/" + Uri.EscapeDataString(game.Id) + "/package", HttpCompletionOption.ResponseHeadersRead);
+            using var response = await http.GetAsync(server + "/api/games/" + Uri.EscapeDataString(game.Id) + "/package",
+                HttpCompletionOption.ResponseHeadersRead, popup.Cancellation);
             response.EnsureSuccessStatusCode();
-            await using var output = File.Create(dialog.FileName);
-            await response.Content.CopyToAsync(output);
-            StatusText.Text = "Paket gespeichert: " + dialog.FileName;
+            var suggested = response.Content.Headers.ContentDisposition?.FileNameStar
+                ?? response.Content.Headers.ContentDisposition?.FileName?.Trim('"')
+                ?? (game.Name + ".zip");
+            var dialog = new SaveFileDialog { FileName = suggested, Filter = "Alle Dateien|*.*" };
+            if (dialog.ShowDialog() != true) { StatusText.Text = "Download abgebrochen."; return; }
+            outputPath = dialog.FileName;
+            await using var input = await response.Content.ReadAsStreamAsync(popup.Cancellation);
+            await using var output = File.Create(outputPath);
+            var total = response.Content.Headers.ContentLength;
+            var buffer = new byte[128 * 1024];
+            long received = 0;
+            int count;
+            while ((count = await input.ReadAsync(buffer, popup.Cancellation)) != 0)
+            {
+                await output.WriteAsync(buffer.AsMemory(0, count), popup.Cancellation);
+                received += count;
+                popup.Update(received, total);
+            }
+            await output.FlushAsync(popup.Cancellation);
+            StatusText.Text = "Paket gespeichert: " + outputPath;
+            outputPath = null;
         }
+        catch (OperationCanceledException) { StatusText.Text = "Download abgebrochen."; }
         catch (Exception ex) { StatusText.Text = "Download fehlgeschlagen: " + ex.Message; }
+        finally
+        {
+            if (outputPath is not null && File.Exists(outputPath))
+                try { File.Delete(outputPath); } catch (IOException) { }
+            popup.Close();
+        }
     }
 
 }
