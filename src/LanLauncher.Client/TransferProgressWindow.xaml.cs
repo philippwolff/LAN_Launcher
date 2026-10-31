@@ -5,6 +5,7 @@ namespace LanLauncher.Client;
 public partial class TransferProgressWindow : Window
 {
     private readonly CancellationTokenSource cancellation = new();
+    private bool allowClose;
     public CancellationToken Cancellation => cancellation.Token;
     public TransferProgressWindow(string title)
     {
@@ -29,10 +30,17 @@ public partial class TransferProgressWindow : Window
         }
     }
     public void Finishing() { TransferBar.IsIndeterminate = true; TransferDetails.Text = "Übertragung abgeschlossen – Server verarbeitet Datei …"; CancelButton.IsEnabled = false; }
-    private void Cancel_Click(object sender, RoutedEventArgs e) { CancelButton.IsEnabled = false; cancellation.Cancel(); TransferDetails.Text = "Abbruch läuft …"; }
+    public void CloseAfterTransfer() { allowClose = true; Close(); }
+    public void CancelTransfer()
+    {
+        if (!cancellation.IsCancellationRequested) cancellation.Cancel();
+        CancelButton.IsEnabled = false;
+        TransferDetails.Text = "Abbruch läuft …";
+    }
+    private void Cancel_Click(object sender, RoutedEventArgs e) => CancelTransfer();
     protected override void OnClosing(System.ComponentModel.CancelEventArgs e)
     {
-        if (CancelButton.IsEnabled) { e.Cancel = true; cancellation.Cancel(); CancelButton.IsEnabled = false; TransferDetails.Text = "Abbruch läuft …"; }
+        if (!allowClose) { e.Cancel = true; CancelTransfer(); }
         base.OnClosing(e);
     }
 }
