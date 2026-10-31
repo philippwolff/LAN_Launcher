@@ -31,6 +31,17 @@ Der Ordner Server\ ist lokal und wird nicht nach GitHub übertragen.
 Zweite Eingabeaufforderung im Projektordner:
   dotnet run --project src/LanLauncher.Client
 Server-IP/Port und Benutzernamen eintragen, dann "Verbinden".
+Über "⚙ Einstellungen" die Standardordner für Installation und Download
+festlegen. Die Einstellungen werden pro Windows-Benutzer gespeichert unter:
+  %LOCALAPPDATA%\\LANLauncher\\settings.json
+Standardinstallation: %LOCALAPPDATA%\\LANLauncher\\Games
+Standarddownload: %USERPROFILE%\\Downloads
+Bei "Herunterladen und installieren" wird der Standardinstallationsort
+automatisch genutzt; ZIP-Spiele erhalten einen Unterordner mit Spielnamen.
+Downloads für die Installation werden zunächst als temporäre .part-Dateien
+im Standarddownloadordner abgelegt und nach Verarbeitung entfernt.
+"Nur Paket herunterladen" öffnet weiterhin den Speichern-Dialog, der im
+eingestellten Downloadordner startet.
 Die Spielerübersicht zeigt derzeit verbundene Benutzer.
 
 6. ADMIN / SPIELE HOCHLADEN
