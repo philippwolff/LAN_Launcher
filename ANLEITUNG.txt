@@ -1,0 +1,66 @@
+LAN PARTY LAUNCHER – KURZANLEITUNG
+Stand: 31.10.2026
+
+1. PROJEKT / GITHUB
+Repository: https://github.com/philippwolff/LAN_Launcher
+Lokaler Projektordner (Beispiel): C:\Projekte\LAN_Launcher\LAN_Launcher
+GitHub Desktop: "Fetch origin" und "Pull origin" laden Änderungen herunter.
+Eigene Änderungen: "Commit to main" und "Push origin" hochladen.
+WICHTIG: Hochgeladene Spiele und Serverdaten NICHT in Git committen.
+
+2. VORAUSSETZUNGEN
+Windows, .NET 10 SDK (für Entwicklung/Build), GitHub Desktop.
+Der Launcher ist eine WPF-Anwendung in C#; der Server nutzt ASP.NET Core.
+
+3. SERVER STARTEN (ENTWICKLUNG)
+Eingabeaufforderung (cmd) im Projektordner öffnen:
+  set "LANLAUNCHER_AdminKey=HIER_EIGENEN_SCHLUESSEL_EINTRAGEN"
+  dotnet run --project src/LanLauncher.Server
+Der Admin-Schlüssel wird nur für die Serverlaufzeit gesetzt.
+Serveradresse auf dem gleichen PC: 127.0.0.1:8080
+Für andere PCs: LAN-IP des Server-PCs und Port 8080 verwenden.
+Server mit Strg+C beenden.
+
+4. SERVER ALS EXE STARTEN
+Im Projektordner "Server-EXE-erstellen.cmd" doppelklicken.
+Die erzeugte EXE liegt unter Server\LanLauncher.Server.exe.
+"Server-starten.cmd" startet sie und fragt nach dem Admin-Schlüssel.
+Der Ordner Server\ ist lokal und wird nicht nach GitHub übertragen.
+
+5. LAUNCHER STARTEN (ENTWICKLUNG)
+Zweite Eingabeaufforderung im Projektordner:
+  dotnet run --project src/LanLauncher.Client
+Server-IP/Port und Benutzernamen eintragen, dann "Verbinden".
+Die Spielerübersicht zeigt derzeit verbundene Benutzer.
+
+6. ADMIN / SPIELE HOCHLADEN
+Den gleichen Admin-Schlüssel wie beim Serverstart im Launcher eintragen.
+Spielname und Version angeben, "ZIP/EXE hochladen" auswählen.
+Alternativ Dateien in den Serverordner Games\Inbox kopieren,
+"Server-Inbox prüfen" klicken und "Aus Inbox importieren" wählen.
+ZIP/EXE-Upload und Download zeigen ein Fortschrittsfenster mit Prozenten.
+Ein Spiel in der Bibliothek auswählen und "Paket herunterladen" anklicken.
+
+7. SPEICHERORTE AUF DEM SERVER
+C:\LAN_Launcher_Server\Games\
+  Packages\  = hochgeladene ZIP-/EXE-Pakete
+  Inbox\     = Dateien für manuellen Import
+  games.json  = gespeicherte Spieleinformationen
+Der Server erstellt benötigte Ordner automatisch.
+Wurden Spiele vor der Umstellung hochgeladen, müssen Packages und
+games.json aus dem bisherigen Storage-Ordner einmalig kopiert werden.
+Den alten Ordner erst nach erfolgreicher Prüfung löschen.
+
+8. WICHTIGE HINWEISE / NOCH OFFEN
+- EXE-Installationsdateien werden nur verteilt, nicht automatisch installiert.
+- Automatisches Entpacken, Installieren und Starten der Spiele folgen später.
+- Ganze entpackte Spieleordner werden noch nicht automatisch importiert.
+- Admin-Zugriff ist derzeit über einen Schlüssel geschützt; HTTP im LAN
+  ist nicht verschlüsselt. Nur in einem vertrauenswürdigen LAN einsetzen.
+- Nur Spielepakete verteilen, für die entsprechende Nutzungsrechte bestehen.
+- Bei Fehlern die vollständige Konsolenausgabe bzw. Fehlermeldung sichern.
+
+PFLEGE DIESER ANLEITUNG
+Diese Datei liegt im GitHub-Repository und wird bei künftigen Änderungen
+am Launcher von uns mit aktualisiert. Nach Änderungen über GitHub Desktop
+erneut "Fetch origin" / "Pull origin" ausführen.
