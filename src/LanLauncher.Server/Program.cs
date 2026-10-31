@@ -7,6 +7,8 @@ using LanLauncher.Server;
 var builder = WebApplication.CreateBuilder(args);
 builder.WebHost.UseUrls(builder.Configuration["ListenUrl"] ?? "http://0.0.0.0:8080");
 builder.Services.AddSingleton<GameCatalog>();
+builder.WebHost.ConfigureKestrel(options => options.Limits.MaxRequestBodySize = 20L * 1024 * 1024 * 1024);
+builder.Services.Configure<Microsoft.AspNetCore.Http.Features.FormOptions>(options => options.MultipartBodyLengthLimit = 20L * 1024 * 1024 * 1024);
 var app = builder.Build();
 var players = new ConcurrentDictionary<string, (PlayerInfo Player, DateTimeOffset Seen)>();
 var catalog = app.Services.GetRequiredService<GameCatalog>();
