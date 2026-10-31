@@ -54,6 +54,7 @@ app.MapPost("/api/status", (StatusRequest req) =>
     players[req.ClientId] = (current.Player with { Status = req.Status, GameId = req.Status == "Im Spiel" ? req.GameId : null }, DateTimeOffset.UtcNow);
     return Results.Ok();
 });
+app.MapGet("/api/admin/check", (HttpRequest req) => IsAdmin(req) ? Results.Ok(new { status = "authorized" }) : Results.Unauthorized());
 app.MapGet("/api/admin/inbox", (HttpRequest req) =>
     !IsAdmin(req) ? Results.Unauthorized() : Results.Ok(
         Directory.GetFiles(catalog.Inbox).Select(Path.GetFileName).Where(n => n is not null &&
