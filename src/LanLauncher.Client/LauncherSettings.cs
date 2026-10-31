@@ -5,6 +5,7 @@ namespace LanLauncher.Client;
 
 public sealed class LauncherSettings
 {
+    public string? LastOpenedGameId { get; set; }
     public Dictionary<string, string> InstalledExecutables { get; set; } = new();
     public string InstallDirectory { get; set; } = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "LANLauncher", "Games");
