@@ -14,6 +14,13 @@ public partial class MainWindow : Window
     private readonly DispatcherTimer timer = new() { Interval = TimeSpan.FromSeconds(10) };
     private readonly string clientId = Guid.NewGuid().ToString("N");
     private string? server;
+    private readonly System.Collections.Generic.HashSet<TransferProgressWindow> activeTransfers = new();
+    protected override void OnClosing(System.ComponentModel.CancelEventArgs e)
+    {
+        timer.Stop();
+        foreach (var transfer in activeTransfers.ToArray()) transfer.CancelTransfer();
+        base.OnClosing(e);
+    }
     public MainWindow()
     {
         InitializeComponent();
@@ -104,6 +111,7 @@ public partial class MainWindow : Window
         var dialog = new OpenFileDialog { Filter = "Spielepakete (*.zip;*.exe)|*.zip;*.exe" };
         if (dialog.ShowDialog() != true) return;
         var popup = new TransferProgressWindow("Upload: " + Path.GetFileName(dialog.FileName)) { Owner = this };
+        activeTransfers.Add(popup);
         popup.Show();
         try
         {
@@ -126,7 +134,7 @@ public partial class MainWindow : Window
         }
         catch (OperationCanceledException) { StatusText.Text = "Upload abgebrochen."; }
         catch (Exception ex) { StatusText.Text = "Upload fehlgeschlagen: " + ex.Message; }
-        finally { popup.Close(); }
+        finally { activeTransfers.Remove(popup); popup.CloseAfterTransfer(); }
     }
 
     private async void DeleteGame_Click(object sender, RoutedEventArgs e)
@@ -169,11 +177,13 @@ public partial class MainWindow : Window
     {
         if (server is null || GamesList.SelectedItem is not GameInfo game) { StatusText.Text = "Bitte ein Spiel auswählen."; return; }
         var popup = new TransferProgressWindow("Download: " + game.Name) { Owner = this };
+        activeTransfers.Add(popup);
         popup.Show();
         string? outputPath = null;
         try
         {
-            using var response = await http.GetAsync(server + "/api/games/" + Uri.EscapeDataString(game.Id) + "/package",
+            using var downloadClient = new HttpClient { Timeout = Timeout.InfiniteTimeSpan };
+            using var response = await downloadClient.GetAsync(server + "/api/games/" + Uri.EscapeDataString(game.Id) + "/package",
                 HttpCompletionOption.ResponseHeadersRead, popup.Cancellation);
             response.EnsureSuccessStatusCode();
             var suggested = response.Content.Headers.ContentDisposition?.FileNameStar
@@ -204,7 +214,8 @@ public partial class MainWindow : Window
         {
             if (outputPath is not null && File.Exists(outputPath))
                 try { File.Delete(outputPath); } catch (IOException) { }
-            popup.Close();
+            activeTransfers.Remove(popup);
+            popup.CloseAfterTransfer();
         }
     }
 
