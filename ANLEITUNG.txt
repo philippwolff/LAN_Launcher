@@ -40,6 +40,11 @@ Alternativ Dateien in den Serverordner Games\Inbox kopieren,
 "Server-Inbox prüfen" klicken und "Aus Inbox importieren" wählen.
 ZIP/EXE-Upload und Download zeigen ein Fortschrittsfenster mit Prozenten.
 Ein Spiel in der Bibliothek auswählen und "Paket herunterladen" anklicken.
+SPIEL LÖSCHEN (ADMIN): Spiel in der Bibliothek markieren, unten
+"Spiel vom Server löschen (Admin)" anklicken und Warnung bestätigen.
+Dies entfernt den Bibliothekseintrag und das Paket aus Packages\ dauerhaft.
+Der Admin-Schlüssel muss gültig sein. Bereits heruntergeladene Dateien
+auf anderen PCs sowie Dateien in Inbox\ bleiben erhalten.
 
 7. SPEICHERORTE AUF DEM SERVER
 C:\LAN_Launcher_Server\Games\
