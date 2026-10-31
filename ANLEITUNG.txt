@@ -39,6 +39,10 @@ Spielname und Version angeben, "ZIP/EXE hochladen" auswählen.
 Alternativ Dateien in den Serverordner Games\Inbox kopieren,
 "Server-Inbox prüfen" klicken und "Aus Inbox importieren" wählen.
 ZIP/EXE-Upload und Download zeigen ein Fortschrittsfenster mit Prozenten.
+"Abbrechen" beendet eine laufende Übertragung; beim Schließen des Clients
+werden laufende Übertragungen ebenfalls abgebrochen. Unvollständige
+Downloads werden als .part-Dateien gespeichert und bei Abbruch gelöscht.
+Bereits vorhandene .part-Dateien von älteren Versionen ggf. manuell löschen.
 Ein Spiel in der Bibliothek auswählen und "Paket herunterladen" anklicken.
 SPIEL LÖSCHEN (ADMIN): Spiel in der Bibliothek markieren, unten
 "Spiel vom Server löschen (Admin)" anklicken und Warnung bestätigen.
