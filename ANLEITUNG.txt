@@ -43,7 +43,16 @@ ZIP/EXE-Upload und Download zeigen ein Fortschrittsfenster mit Prozenten.
 erscheint eine Sicherheitsabfrage (Ja = schließen und Übertragungen\nabbrechen; Nein = Launcher geöffnet lassen). Unvollständige
 Downloads werden als .part-Dateien gespeichert und bei Abbruch gelöscht.
 Bereits vorhandene .part-Dateien von älteren Versionen ggf. manuell löschen.
-Ein Spiel in der Bibliothek auswählen und "Paket herunterladen" anklicken.
+Ein Spiel in der Bibliothek auswählen und "Nur Paket herunterladen" anklicken.
+NEU: "Herunterladen und installieren" lädt das gewählte Spiel herunter.
+- ZIP: Installationsbasisordner auswählen; ZIP wird automatisch in einen
+  neuen Unterordner mit dem Spielnamen entpackt.
+- EXE: Installationsbasisordner auswählen; nach dem Download fragt der
+  Launcher ausdrücklich, ob der normale Installationsassistent gestartet
+  werden soll. Eine stille/unbeaufsichtigte Installation erfolgt nicht.
+- Unvollständige Downloads werden entfernt. Bereits vorhandene Dateien
+  im Installationsordner werden nicht überschrieben.
+- Die Installation registriert derzeit noch keinen Spielstart im Launcher.
 SPIEL LÖSCHEN (ADMIN): Spiel in der Bibliothek markieren, unten
 "Spiel vom Server löschen (Admin)" anklicken und Warnung bestätigen.
 Dies entfernt den Bibliothekseintrag und das Paket aus Packages\ dauerhaft.
@@ -61,8 +70,10 @@ games.json aus dem bisherigen Storage-Ordner einmalig kopiert werden.
 Den alten Ordner erst nach erfolgreicher Prüfung löschen.
 
 8. WICHTIGE HINWEISE / NOCH OFFEN
-- EXE-Installationsdateien werden nur verteilt, nicht automatisch installiert.
-- Automatisches Entpacken, Installieren und Starten der Spiele folgen später.
+- EXE-Installationsassistenten können nach Download und Bestätigung gestartet
+  werden; deren Installationsablauf und Zielverzeichnis bestimmt der Installer.
+- ZIP-Archive werden automatisch entpackt; automatischer Spielstart,
+  Installationserkennung und Versionsabgleich folgen später.
 - Ganze entpackte Spieleordner werden noch nicht automatisch importiert.
 - Admin-Zugriff ist derzeit über einen Schlüssel geschützt; HTTP im LAN
   ist nicht verschlüsselt. Nur in einem vertrauenswürdigen LAN einsetzen.
