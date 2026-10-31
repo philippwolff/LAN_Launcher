@@ -85,6 +85,22 @@ public partial class MainWindow : Window
     private async void Upload_Click(object sender, RoutedEventArgs e)
     {
         if (server is null) { StatusText.Text = "Zuerst verbinden."; return; }
+        try
+        {
+            using var checkRequest = AdminRequest(HttpMethod.Get, "/api/admin/check");
+            using var checkResponse = await http.SendAsync(checkRequest);
+            if (!checkResponse.IsSuccessStatusCode)
+            {
+                StatusText.Text = "Upload abgelehnt: Admin-Schlüssel fehlt oder ist ungültig (HTTP " + (int)checkResponse.StatusCode + ").";
+                return;
+            }
+            if (string.IsNullOrWhiteSpace(GameNameBox.Text) || string.IsNullOrWhiteSpace(GameVersionBox.Text))
+            {
+                StatusText.Text = "Bitte Spielname und Version eingeben.";
+                return;
+            }
+        }
+        catch (Exception ex) { StatusText.Text = "Admin-Prüfung fehlgeschlagen: " + ex.Message; return; }
         var dialog = new OpenFileDialog { Filter = "Spielepakete (*.zip;*.exe)|*.zip;*.exe" };
         if (dialog.ShowDialog() != true) return;
         try
@@ -101,7 +117,7 @@ public partial class MainWindow : Window
             using var uploadClient = new HttpClient { Timeout = TimeSpan.FromHours(2) };
             StatusText.Text = "Upload läuft …";
             using var response = await uploadClient.SendAsync(request);
-            StatusText.Text = response.IsSuccessStatusCode ? "Spiel hochgeladen." : "Upload fehlgeschlagen: " + await response.Content.ReadAsStringAsync();
+            StatusText.Text = response.IsSuccessStatusCode ? "Spiel hochgeladen." : "Upload fehlgeschlagen (HTTP " + (int)response.StatusCode + "): " + await response.Content.ReadAsStringAsync();
             if (response.IsSuccessStatusCode) await RefreshAsync();
         }
         catch (Exception ex) { StatusText.Text = ex.Message; }
