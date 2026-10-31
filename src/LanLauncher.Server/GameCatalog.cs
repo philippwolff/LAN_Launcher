@@ -24,7 +24,18 @@ public sealed class GameCatalog
             : new();
     }
 
-    public GameInfo[] List() { lock (gate) return games.Values.OrderBy(g => g.Name).ToArray(); }
+    public GameInfo[] List()
+    {
+        lock (gate)
+        {
+            var packageFolder = Path.Combine(root, "Packages");
+            return games.Values
+                .Where(g => File.Exists(Path.Combine(packageFolder, g.Id + ".zip"))
+                         || File.Exists(Path.Combine(packageFolder, g.Id + ".exe")))
+                .OrderBy(g => g.Name)
+                .ToArray();
+        }
+    }
 
     public GameInfo Import(string sourceName, string name, string version, string? description)
     {
