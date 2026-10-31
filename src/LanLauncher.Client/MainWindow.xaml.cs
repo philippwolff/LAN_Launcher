@@ -14,6 +14,17 @@ public partial class MainWindow : Window
     private readonly DispatcherTimer timer = new() { Interval = TimeSpan.FromSeconds(10) };
     private readonly string clientId = Guid.NewGuid().ToString("N");
     private string? server;
+    private LauncherSettings settings = LauncherSettings.Load();
+
+    private void Settings_Click(object sender, RoutedEventArgs e)
+    {
+        var window = new SettingsWindow(settings) { Owner = this };
+        if (window.ShowDialog() == true)
+        {
+            settings = window.Settings;
+            StatusText.Text = "Standardordner gespeichert.";
+        }
+    }
     private readonly System.Collections.Generic.HashSet<TransferProgressWindow> activeTransfers = new();
     protected override void OnClosing(System.ComponentModel.CancelEventArgs e)
     {
@@ -205,14 +216,8 @@ public partial class MainWindow : Window
             return;
         }
 
-        var folderDialog = new OpenFolderDialog
-        {
-            Title = "Installationsordner für " + game.Name + " auswählen",
-            Multiselect = false
-        };
-        if (folderDialog.ShowDialog(this) != true) return;
-
-        var targetFolder = Path.Combine(folderDialog.FolderName,
+        // Use the configured installation directory without asking every time.
+        var targetFolder = Path.Combine(settings.InstallDirectory,
             string.Concat(game.Name.Select(ch => Path.GetInvalidFileNameChars().Contains(ch) ? '_' : ch)));
         if (Directory.Exists(targetFolder) && Directory.EnumerateFileSystemEntries(targetFolder).Any())
         {
@@ -224,7 +229,8 @@ public partial class MainWindow : Window
         var popup = new TransferProgressWindow("Herunterladen und installieren: " + game.Name) { Owner = this };
         activeTransfers.Add(popup);
         popup.Show();
-        var tempPackage = Path.Combine(Path.GetTempPath(), "LANLauncher-" + Guid.NewGuid().ToString("N") + ".part");
+        Directory.CreateDirectory(settings.DownloadDirectory);
+        var tempPackage = Path.Combine(settings.DownloadDirectory, "LANLauncher-" + Guid.NewGuid().ToString("N") + ".part");
         try
         {
             using var downloadClient = new HttpClient { Timeout = Timeout.InfiniteTimeSpan };
@@ -346,7 +352,8 @@ public partial class MainWindow : Window
             var suggested = response.Content.Headers.ContentDisposition?.FileNameStar
                 ?? response.Content.Headers.ContentDisposition?.FileName?.Trim('"')
                 ?? (game.Name + ".zip");
-            var dialog = new SaveFileDialog { FileName = suggested, Filter = "Alle Dateien|*.*" };
+            Directory.CreateDirectory(settings.DownloadDirectory);
+            var dialog = new SaveFileDialog { FileName = suggested, InitialDirectory = settings.DownloadDirectory, Filter = "Alle Dateien|*.*" };
             if (dialog.ShowDialog() != true) { StatusText.Text = "Download abgebrochen."; return; }
             outputPath = dialog.FileName;
             temporaryPath = outputPath + ".part";
