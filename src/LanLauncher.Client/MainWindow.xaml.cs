@@ -16,6 +16,7 @@ public partial class MainWindow : Window
     private readonly string clientId = Guid.NewGuid().ToString("N");
     private string? server;
     private LauncherSettings settings = LauncherSettings.Load();
+    private bool updatingGames;
 
     private void Settings_Click(object sender, RoutedEventArgs e)
     {
@@ -85,13 +86,67 @@ public partial class MainWindow : Window
             var games = await gamesResponse.Content.ReadFromJsonAsync<GameInfo[]>() ?? [];
             var players = await http.GetFromJsonAsync<PlayerInfo[]>(server + "/api/players") ?? [];
             var selectedGameId = (GamesList.SelectedItem as GameInfo)?.Id;
-            GamesList.ItemsSource = games;
-            GamesList.SelectedItem = games.FirstOrDefault(g => g.Id == selectedGameId);
+            updatingGames = true;
+            try
+            {
+                GamesList.ItemsSource = games;
+                GamesList.SelectedItem = games.FirstOrDefault(g => g.Id == selectedGameId);
+            }
+            finally { updatingGames = false; }
             PlayersList.ItemsSource = players.Select(p => p.Name + " — " + p.Status + (p.GameId is null ? "" : " (" + p.GameId + ")")).ToArray();
             StatusText.Text = "Verbunden — " + players.Length + " Spieler online";
         }
         catch (Exception ex) { StatusText.Text = "Server nicht erreichbar: " + ex.Message; }
     }
+    private void GamesList_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+    {
+        if (updatingGames || GamesList.SelectedItem is not GameInfo game) return;
+        var popup = new GameActionsWindow(game) { Owner = this };
+        if (popup.ShowDialog() != true) return;
+        switch (popup.SelectedAction)
+        {
+            case GameActionsWindow.GameAction.Start:
+                StartGame(game);
+                break;
+            case GameActionsWindow.GameAction.Install:
+                Install_Click(sender, new RoutedEventArgs());
+                break;
+            case GameActionsWindow.GameAction.Download:
+                Download_Click(sender, new RoutedEventArgs());
+                break;
+            case GameActionsWindow.GameAction.Delete:
+                DeleteGame_Click(sender, new RoutedEventArgs());
+                break;
+        }
+    }
+
+    private void StartGame(GameInfo game)
+    {
+        if (!settings.InstalledExecutables.TryGetValue(game.Id, out var executable) || !File.Exists(executable))
+        {
+            var selection = MessageBox.Show(this,
+                "Für dieses Spiel wurde noch keine ausführbare Datei hinterlegt.\n\n" +
+                "Möchtest du die bereits installierte Spiel-EXE jetzt auswählen?",
+                "Spielstart einrichten", MessageBoxButton.YesNo, MessageBoxImage.Question);
+            if (selection != MessageBoxResult.Yes) return;
+            var picker = new OpenFileDialog { Filter = "Anwendungen (*.exe)|*.exe", CheckFileExists = true };
+            if (picker.ShowDialog(this) != true) return;
+            executable = picker.FileName;
+            settings.InstalledExecutables[game.Id] = executable;
+            settings.Save();
+        }
+        try
+        {
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(executable)
+            {
+                UseShellExecute = true,
+                WorkingDirectory = Path.GetDirectoryName(executable)!
+            });
+            StatusText.Text = "Spiel gestartet: " + game.Name;
+        }
+        catch (Exception ex) { StatusText.Text = "Spielstart fehlgeschlagen: " + ex.Message; }
+    }
+
     private HttpRequestMessage AdminRequest(HttpMethod method, string endpoint)
     {
         var request = new HttpRequestMessage(method, server + endpoint);
@@ -321,6 +376,8 @@ public partial class MainWindow : Window
 
                     if (executable is not null)
                     {
+                        settings.InstalledExecutables[game.Id] = executable;
+                        settings.Save();
                         var start = MessageBox.Show(this,
                             "Das Spiel wurde entpackt nach:\n" + targetFolder +
                             "\n\nMöchtest du diese EXE jetzt ausführen?\n" +
