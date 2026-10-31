@@ -57,7 +57,10 @@ Bereits vorhandene .part-Dateien von älteren Versionen ggf. manuell löschen.
 Ein Spiel in der Bibliothek auswählen und "Nur Paket herunterladen" anklicken.
 NEU: "Herunterladen und installieren" lädt das gewählte Spiel herunter.
 - ZIP: Installationsbasisordner auswählen; ZIP wird automatisch in einen
-  neuen Unterordner mit dem Spielnamen entpackt.
+  neuen Unterordner mit dem Spielnamen entpackt. Anschließend sucht der
+  Launcher nach EXE-Dateien. Bei einer EXE wird deren Start angeboten;
+  bei mehreren EXE-Dateien wählst du die richtige aus. Vor dem Start
+  muss die Ausführung ausdrücklich bestätigt werden.
 - EXE: Installationsbasisordner auswählen; nach dem Download fragt der
   Launcher ausdrücklich, ob der normale Installationsassistent gestartet
   werden soll. Eine stille/unbeaufsichtigte Installation erfolgt nicht.
@@ -83,7 +86,8 @@ Den alten Ordner erst nach erfolgreicher Prüfung löschen.
 8. WICHTIGE HINWEISE / NOCH OFFEN
 - EXE-Installationsassistenten können nach Download und Bestätigung gestartet
   werden; deren Installationsablauf und Zielverzeichnis bestimmt der Installer.
-- ZIP-Archive werden automatisch entpackt; automatischer Spielstart,
+- ZIP-Archive werden automatisch entpackt und können nach Bestätigung
+  eine enthaltene EXE starten; automatischer Spielstart ohne Rückfrage,
   Installationserkennung und Versionsabgleich folgen später.
 - Ganze entpackte Spieleordner werden noch nicht automatisch importiert.
 - Admin-Zugriff ist derzeit über einen Schlüssel geschützt; HTTP im LAN
