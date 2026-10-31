@@ -89,8 +89,11 @@ public partial class MainWindow : Window
             updatingGames = true;
             try
             {
-                GamesList.ItemsSource = games;
-                GamesList.SelectedItem = games.FirstOrDefault(g => g.Id == selectedGameId);
+                var sortedGames = games.OrderBy(g => g.Name, StringComparer.CurrentCultureIgnoreCase).ToArray();
+                GamesList.ItemsSource = sortedGames;
+                GamesList.SelectedItem = sortedGames.FirstOrDefault(g => g.Id == selectedGameId)
+                    ?? sortedGames.FirstOrDefault(g => g.Id == settings.LastOpenedGameId)
+                    ?? sortedGames.FirstOrDefault();
             }
             finally { updatingGames = false; }
             PlayersList.ItemsSource = players.Select(p => p.Name + " — " + p.Status + (p.GameId is null ? "" : " (" + p.GameId + ")")).ToArray();
@@ -101,6 +104,26 @@ public partial class MainWindow : Window
     private void GamesList_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
     {
         if (updatingGames || GamesList.SelectedItem is not GameInfo game) return;
+        OpenGameActions(game);
+    }
+
+    private void GamesList_MouseDoubleClick(object sender, System.Windows.Input.MouseButtonEventArgs e)
+    {
+        if (e.OriginalSource is System.Windows.DependencyObject source &&
+            System.Windows.Controls.ItemsControl.ContainerFromElement(GamesList, source)
+                is System.Windows.Controls.ListBoxItem &&
+            GamesList.SelectedItem is GameInfo game)
+        {
+            OpenGameActions(game);
+            e.Handled = true;
+        }
+    }
+
+    private void OpenGameActions(GameInfo game)
+    {
+        settings.LastOpenedGameId = game.Id;
+        try { settings.Save(); }
+        catch (Exception ex) { StatusText.Text = "Spielauswahl konnte nicht gespeichert werden: " + ex.Message; }
         var popup = new GameActionsWindow(game) { Owner = this };
         if (popup.ShowDialog() != true) return;
         switch (popup.SelectedAction)
