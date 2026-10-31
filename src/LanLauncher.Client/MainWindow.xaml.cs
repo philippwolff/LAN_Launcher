@@ -17,6 +17,23 @@ public partial class MainWindow : Window
     private readonly System.Collections.Generic.HashSet<TransferProgressWindow> activeTransfers = new();
     protected override void OnClosing(System.ComponentModel.CancelEventArgs e)
     {
+        if (activeTransfers.Count > 0)
+        {
+            var answer = MessageBox.Show(
+                this,
+                "Es laufen noch " + activeTransfers.Count + " Upload(s) oder Download(s).\n\n" +
+                "Wenn du den Launcher schließt, werden diese Übertragungen abgebrochen.\n\n" +
+                "Möchtest du den Launcher wirklich schließen?",
+                "Laufende Dateiübertragungen",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Warning,
+                MessageBoxResult.No);
+            if (answer != MessageBoxResult.Yes)
+            {
+                e.Cancel = true;
+                return;
+            }
+        }
         timer.Stop();
         foreach (var transfer in activeTransfers.ToArray()) transfer.CancelTransfer();
         base.OnClosing(e);
