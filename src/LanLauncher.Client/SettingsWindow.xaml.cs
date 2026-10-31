@@ -1,0 +1,52 @@
+using System.IO;
+using System.Windows;
+using Microsoft.Win32;
+
+namespace LanLauncher.Client;
+
+public partial class SettingsWindow : Window
+{
+    public LauncherSettings Settings { get; private set; }
+
+    public SettingsWindow(LauncherSettings current)
+    {
+        InitializeComponent();
+        Settings = current;
+        InstallPathBox.Text = current.InstallDirectory;
+        DownloadPathBox.Text = current.DownloadDirectory;
+    }
+
+    private void BrowseInstall_Click(object sender, RoutedEventArgs e) => Browse(InstallPathBox);
+    private void BrowseDownload_Click(object sender, RoutedEventArgs e) => Browse(DownloadPathBox);
+
+    private void Browse(System.Windows.Controls.TextBox box)
+    {
+        var dialog = new OpenFolderDialog { Title = "Ordner auswählen" };
+        if (Directory.Exists(box.Text)) dialog.InitialDirectory = box.Text;
+        if (dialog.ShowDialog(this) == true) box.Text = dialog.FolderName;
+    }
+
+    private void Save_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            var install = Path.GetFullPath(Environment.ExpandEnvironmentVariables(InstallPathBox.Text.Trim()));
+            var download = Path.GetFullPath(Environment.ExpandEnvironmentVariables(DownloadPathBox.Text.Trim()));
+            if (string.IsNullOrWhiteSpace(InstallPathBox.Text) || string.IsNullOrWhiteSpace(DownloadPathBox.Text))
+                throw new ArgumentException("Beide Ordner müssen angegeben werden.");
+            Directory.CreateDirectory(install);
+            Directory.CreateDirectory(download);
+            var updated = new LauncherSettings { InstallDirectory = install, DownloadDirectory = download };
+            updated.Save();
+            Settings = updated;
+            DialogResult = true;
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(this, "Einstellungen konnten nicht gespeichert werden:\n" + ex.Message,
+                "Ungültiger Ordner", MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
+    }
+
+    private void Cancel_Click(object sender, RoutedEventArgs e) => DialogResult = false;
+}
