@@ -12,3 +12,6 @@ obj/
 **/storage/
 **/Games/Packages/
 **/Games/Inbox/
+
+# Locally published server executable
+/Server/
