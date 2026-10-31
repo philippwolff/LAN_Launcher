@@ -40,7 +40,7 @@ Alternativ Dateien in den Serverordner Games\Inbox kopieren,
 "Server-Inbox prüfen" klicken und "Aus Inbox importieren" wählen.
 ZIP/EXE-Upload und Download zeigen ein Fortschrittsfenster mit Prozenten.
 "Abbrechen" beendet eine laufende Übertragung; beim Schließen des Clients
-werden laufende Übertragungen ebenfalls abgebrochen. Unvollständige
+erscheint eine Sicherheitsabfrage (Ja = schließen und Übertragungen\nabbrechen; Nein = Launcher geöffnet lassen). Unvollständige
 Downloads werden als .part-Dateien gespeichert und bei Abbruch gelöscht.
 Bereits vorhandene .part-Dateien von älteren Versionen ggf. manuell löschen.
 Ein Spiel in der Bibliothek auswählen und "Paket herunterladen" anklicken.
