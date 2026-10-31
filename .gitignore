@@ -6,3 +6,9 @@ obj/
 *.db
 *.db-shm
 *.db-wal
+
+# Runtime server data and uploaded games
+**/Storage/
+**/storage/
+**/Games/Packages/
+**/Games/Inbox/
