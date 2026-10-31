@@ -196,6 +196,138 @@ public partial class MainWindow : Window
         catch (Exception ex) { StatusText.Text = "Löschen fehlgeschlagen: " + ex.Message; }
     }
 
+
+    private async void Install_Click(object sender, RoutedEventArgs e)
+    {
+        if (server is null || GamesList.SelectedItem is not GameInfo game)
+        {
+            StatusText.Text = "Bitte ein Spiel auswählen.";
+            return;
+        }
+
+        var folderDialog = new OpenFolderDialog
+        {
+            Title = "Installationsordner für " + game.Name + " auswählen",
+            Multiselect = false
+        };
+        if (folderDialog.ShowDialog(this) != true) return;
+
+        var targetFolder = Path.Combine(folderDialog.FolderName,
+            string.Concat(game.Name.Select(ch => Path.GetInvalidFileNameChars().Contains(ch) ? '_' : ch)));
+        if (Directory.Exists(targetFolder) && Directory.EnumerateFileSystemEntries(targetFolder).Any())
+        {
+            MessageBox.Show(this, "Der Zielordner ist nicht leer. Bitte wähle einen anderen Installationsordner.",
+                "Installationsordner belegt", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
+        var popup = new TransferProgressWindow("Herunterladen und installieren: " + game.Name) { Owner = this };
+        activeTransfers.Add(popup);
+        popup.Show();
+        var tempPackage = Path.Combine(Path.GetTempPath(), "LANLauncher-" + Guid.NewGuid().ToString("N") + ".part");
+        try
+        {
+            using var downloadClient = new HttpClient { Timeout = Timeout.InfiniteTimeSpan };
+            using var response = await downloadClient.GetAsync(
+                server + "/api/games/" + Uri.EscapeDataString(game.Id) + "/package",
+                HttpCompletionOption.ResponseHeadersRead, popup.Cancellation);
+            response.EnsureSuccessStatusCode();
+
+            var fileName = response.Content.Headers.ContentDisposition?.FileNameStar
+                ?? response.Content.Headers.ContentDisposition?.FileName?.Trim('"')
+                ?? "";
+            var extension = Path.GetExtension(fileName).ToLowerInvariant();
+            if (extension is not (".zip" or ".exe"))
+                throw new InvalidDataException("Der Server hat keinen gültigen ZIP-/EXE-Dateityp übermittelt.");
+
+            await using (var input = await response.Content.ReadAsStreamAsync(popup.Cancellation))
+            await using (var output = new FileStream(tempPackage, FileMode.CreateNew, FileAccess.Write,
+                FileShare.None, 128 * 1024, useAsync: true))
+            {
+                var total = response.Content.Headers.ContentLength;
+                var buffer = new byte[128 * 1024];
+                long received = 0;
+                int count;
+                while ((count = await input.ReadAsync(buffer, popup.Cancellation)) > 0)
+                {
+                    await output.WriteAsync(buffer.AsMemory(0, count), popup.Cancellation);
+                    received += count;
+                    popup.Update(received, total);
+                }
+                await output.FlushAsync(popup.Cancellation);
+                if (total.HasValue && received != total.Value)
+                    throw new IOException("Der Download ist unvollständig.");
+            }
+            popup.Cancellation.ThrowIfCancellationRequested();
+            popup.Finishing();
+            activeTransfers.Remove(popup);
+            popup.CloseAfterTransfer();
+
+            if (extension == ".zip")
+            {
+                // Extraktion in einen frischen Ordner. Keine Dateien anderer Installationen überschreiben.
+                Directory.CreateDirectory(targetFolder);
+                try
+                {
+                    await Task.Run(() =>
+                    {
+                        using var archive = System.IO.Compression.ZipFile.OpenRead(tempPackage);
+                        const long maxUncompressedBytes = 40L * 1024 * 1024 * 1024;
+                        long totalSize = 0;
+                        foreach (var entry in archive.Entries)
+                        {
+                            checked { totalSize += entry.Length; }
+                            if (totalSize > maxUncompressedBytes)
+                                throw new InvalidDataException("Archiv überschreitet die maximale entpackte Größe (40 GB).");
+                        }
+                        archive.ExtractToDirectory(targetFolder, overwriteFiles: false);
+                    });
+                    StatusText.Text = "Spiel entpackt nach: " + targetFolder;
+                    MessageBox.Show(this, "Das Spiel wurde entpackt nach:\n" + targetFolder +
+                        "\n\nDu kannst die Spiel-EXE dort starten.", "Installation abgeschlossen",
+                        MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+                catch
+                {
+                    try { Directory.Delete(targetFolder, recursive: true); } catch (IOException) { }
+                    throw;
+                }
+            }
+            else
+            {
+                var answer = MessageBox.Show(this,
+                    "Die Installationsdatei wurde heruntergeladen.\n\n" +
+                    "Möchtest du jetzt den EXE-Installationsassistenten starten?\n" +
+                    "Führe nur Installationsdateien aus vertrauenswürdigen Quellen aus.",
+                    "EXE-Installation starten", MessageBoxButton.YesNo,
+                    MessageBoxImage.Warning, MessageBoxResult.No);
+                if (answer == MessageBoxResult.Yes)
+                {
+                    // Der Installer benötigt seine Datei bis zum Ende; deshalb in den gewählten Ordner verschieben.
+                    Directory.CreateDirectory(targetFolder);
+                    var installerPath = Path.Combine(targetFolder, Path.GetFileName(fileName));
+                    File.Move(tempPackage, installerPath, overwrite: true);
+                    System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(installerPath)
+                    {
+                        UseShellExecute = true,
+                        WorkingDirectory = targetFolder
+                    });
+                    StatusText.Text = "Installationsassistent gestartet: " + installerPath;
+                }
+                else
+                    StatusText.Text = "EXE-Installation nicht gestartet.";
+            }
+        }
+        catch (OperationCanceledException) { StatusText.Text = "Installation/Download abgebrochen."; }
+        catch (Exception ex) { StatusText.Text = "Installation fehlgeschlagen: " + ex.Message; }
+        finally
+        {
+            if (File.Exists(tempPackage))
+                try { File.Delete(tempPackage); } catch (IOException) { }
+            if (activeTransfers.Remove(popup)) popup.CloseAfterTransfer();
+        }
+    }
+
     private async void Download_Click(object sender, RoutedEventArgs e)
     {
         if (server is null || GamesList.SelectedItem is not GameInfo game) { StatusText.Text = "Bitte ein Spiel auswählen."; return; }
