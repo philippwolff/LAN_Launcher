@@ -289,9 +289,61 @@ public partial class MainWindow : Window
                         archive.ExtractToDirectory(targetFolder, overwriteFiles: false);
                     });
                     StatusText.Text = "Spiel entpackt nach: " + targetFolder;
-                    MessageBox.Show(this, "Das Spiel wurde entpackt nach:\n" + targetFolder +
-                        "\n\nDu kannst die Spiel-EXE dort starten.", "Installation abgeschlossen",
-                        MessageBoxButton.OK, MessageBoxImage.Information);
+                    var executables = Directory.GetFiles(targetFolder, "*.exe", SearchOption.AllDirectories)
+                        .Where(path => !Path.GetFileName(path).Contains("unins", StringComparison.OrdinalIgnoreCase)
+                                    && !Path.GetFileName(path).Contains("uninstall", StringComparison.OrdinalIgnoreCase))
+                        .ToArray();
+                    string? executable = null;
+                    if (executables.Length == 1)
+                    {
+                        executable = executables[0];
+                    }
+                    else if (executables.Length > 1)
+                    {
+                        MessageBox.Show(this,
+                            "Das Spiel wurde entpackt. Es wurden mehrere EXE-Dateien gefunden.\n" +
+                            "Bitte wähle die richtige Spiel- oder Setup-EXE aus.",
+                            "EXE auswählen", MessageBoxButton.OK, MessageBoxImage.Information);
+                        var executableDialog = new OpenFileDialog
+                        {
+                            Title = "Spiel-EXE auswählen",
+                            Filter = "Anwendungen (*.exe)|*.exe",
+                            InitialDirectory = targetFolder,
+                            CheckFileExists = true
+                        };
+                        if (executableDialog.ShowDialog(this) == true &&
+                            Path.GetFullPath(executableDialog.FileName).StartsWith(
+                                Path.GetFullPath(targetFolder).TrimEnd(Path.DirectorySeparatorChar) +
+                                Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
+                            executable = executableDialog.FileName;
+                    }
+
+                    if (executable is not null)
+                    {
+                        var start = MessageBox.Show(this,
+                            "Das Spiel wurde entpackt nach:\n" + targetFolder +
+                            "\n\nMöchtest du diese EXE jetzt ausführen?\n" +
+                            executable +
+                            "\n\nStarte nur Programme aus vertrauenswürdigen ZIP-Dateien.",
+                            "EXE nach Installation starten", MessageBoxButton.YesNo,
+                            MessageBoxImage.Warning, MessageBoxResult.No);
+                        if (start == MessageBoxResult.Yes)
+                        {
+                            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(executable)
+                            {
+                                UseShellExecute = true,
+                                WorkingDirectory = Path.GetDirectoryName(executable)!
+                            });
+                            StatusText.Text = "EXE gestartet: " + executable;
+                        }
+                    }
+                    else
+                    {
+                        MessageBox.Show(this,
+                            "Das Spiel wurde entpackt nach:\n" + targetFolder +
+                            "\n\nEs wurde keine eindeutige Spiel-EXE zum Starten ausgewählt.",
+                            "Installation abgeschlossen", MessageBoxButton.OK, MessageBoxImage.Information);
+                    }
                 }
                 catch
                 {
