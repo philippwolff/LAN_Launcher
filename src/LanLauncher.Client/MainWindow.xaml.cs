@@ -180,6 +180,8 @@ public partial class MainWindow : Window
         activeTransfers.Add(popup);
         popup.Show();
         string? outputPath = null;
+        string? temporaryPath = null;
+        bool completed = false;
         try
         {
             using var downloadClient = new HttpClient { Timeout = Timeout.InfiniteTimeSpan };
@@ -192,8 +194,9 @@ public partial class MainWindow : Window
             var dialog = new SaveFileDialog { FileName = suggested, Filter = "Alle Dateien|*.*" };
             if (dialog.ShowDialog() != true) { StatusText.Text = "Download abgebrochen."; return; }
             outputPath = dialog.FileName;
+            temporaryPath = outputPath + ".part";
             await using var input = await response.Content.ReadAsStreamAsync(popup.Cancellation);
-            await using var output = File.Create(outputPath);
+            await using var output = File.Create(temporaryPath);
             var total = response.Content.Headers.ContentLength;
             var buffer = new byte[128 * 1024];
             long received = 0;
@@ -205,15 +208,17 @@ public partial class MainWindow : Window
                 popup.Update(received, total);
             }
             await output.FlushAsync(popup.Cancellation);
+            popup.Cancellation.ThrowIfCancellationRequested();
+            File.Move(temporaryPath, outputPath, true);
+            completed = true;
             StatusText.Text = "Paket gespeichert: " + outputPath;
-            outputPath = null;
         }
         catch (OperationCanceledException) { StatusText.Text = "Download abgebrochen."; }
         catch (Exception ex) { StatusText.Text = "Download fehlgeschlagen: " + ex.Message; }
         finally
         {
-            if (outputPath is not null && File.Exists(outputPath))
-                try { File.Delete(outputPath); } catch (IOException) { }
+            if (!completed && temporaryPath is not null && File.Exists(temporaryPath))
+                try { File.Delete(temporaryPath); } catch (IOException) { }
             activeTransfers.Remove(popup);
             popup.CloseAfterTransfer();
         }
