@@ -129,6 +129,42 @@ public partial class MainWindow : Window
         finally { popup.Close(); }
     }
 
+    private async void DeleteGame_Click(object sender, RoutedEventArgs e)
+    {
+        if (server is null || GamesList.SelectedItem is not GameInfo game)
+        {
+            StatusText.Text = "Bitte zuerst verbinden und ein Spiel auswählen.";
+            return;
+        }
+        var confirmation = MessageBox.Show(
+            "Soll das Spiel \"" + game.Name + "\" (Version " + game.Version + ") wirklich vom Server gelöscht werden?\n\n" +
+            "Der Eintrag in der Bibliothek und das gespeicherte ZIP-/EXE-Paket werden dauerhaft entfernt.\n" +
+            "Bereits heruntergeladene Dateien auf anderen PCs bleiben erhalten.",
+            "Spiel endgültig löschen?", MessageBoxButton.YesNo, MessageBoxImage.Warning,
+            MessageBoxResult.No);
+        if (confirmation != MessageBoxResult.Yes) return;
+        try
+        {
+            using var request = AdminRequest(HttpMethod.Delete, "/api/admin/games/" + Uri.EscapeDataString(game.Id));
+            using var response = await http.SendAsync(request);
+            if (response.IsSuccessStatusCode)
+            {
+                await RefreshAsync();
+                StatusText.Text = "Spiel \"" + game.Name + "\" wurde vom Server gelöscht.";
+            }
+            else if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+                StatusText.Text = "Löschen verweigert: Admin-Schlüssel fehlt oder ist ungültig.";
+            else if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                await RefreshAsync();
+                StatusText.Text = "Spiel wurde auf dem Server nicht mehr gefunden.";
+            }
+            else
+                StatusText.Text = "Löschen fehlgeschlagen (HTTP " + (int)response.StatusCode + "): " + await response.Content.ReadAsStringAsync();
+        }
+        catch (Exception ex) { StatusText.Text = "Löschen fehlgeschlagen: " + ex.Message; }
+    }
+
     private async void Download_Click(object sender, RoutedEventArgs e)
     {
         if (server is null || GamesList.SelectedItem is not GameInfo game) { StatusText.Text = "Bitte ein Spiel auswählen."; return; }
