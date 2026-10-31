@@ -66,9 +66,15 @@ public partial class MainWindow : Window
         try
         {
             await http.PostAsJsonAsync(server + "/api/status", new StatusRequest(clientId, "Online", null));
-            var games = await http.GetFromJsonAsync<GameInfo[]>(server + "/api/games") ?? [];
+            using var gamesRequest = new HttpRequestMessage(HttpMethod.Get, server + "/api/games");
+            gamesRequest.Headers.CacheControl = new System.Net.Http.Headers.CacheControlHeaderValue { NoCache = true, NoStore = true };
+            using var gamesResponse = await http.SendAsync(gamesRequest);
+            gamesResponse.EnsureSuccessStatusCode();
+            var games = await gamesResponse.Content.ReadFromJsonAsync<GameInfo[]>() ?? [];
             var players = await http.GetFromJsonAsync<PlayerInfo[]>(server + "/api/players") ?? [];
+            var selectedGameId = (GamesList.SelectedItem as GameInfo)?.Id;
             GamesList.ItemsSource = games;
+            GamesList.SelectedItem = games.FirstOrDefault(g => g.Id == selectedGameId);
             PlayersList.ItemsSource = players.Select(p => p.Name + " — " + p.Status + (p.GameId is null ? "" : " (" + p.GameId + ")")).ToArray();
             StatusText.Text = "Verbunden — " + players.Length + " Spieler online";
         }
