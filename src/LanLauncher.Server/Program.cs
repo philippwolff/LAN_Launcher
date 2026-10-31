@@ -12,7 +12,7 @@ builder.Services.Configure<Microsoft.AspNetCore.Http.Features.FormOptions>(optio
 var app = builder.Build();
 var players = new ConcurrentDictionary<string, (PlayerInfo Player, DateTimeOffset Seen)>();
 var catalog = app.Services.GetRequiredService<GameCatalog>();
-var adminKey = builder.Configuration["AdminKey"];
+var adminKey = Environment.GetEnvironmentVariable("LANLAUNCHER_AdminKey") ?? builder.Configuration["AdminKey"];
 if (string.IsNullOrWhiteSpace(adminKey))
     Console.WriteLine("WARNUNG: Admin-Funktionen deaktiviert. AdminKey per Umgebungsvariable LANLAUNCHER_AdminKey setzen.");
 
