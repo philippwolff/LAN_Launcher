@@ -298,13 +298,6 @@ public partial class MainWindow : Window
         // Use the configured installation directory without asking every time.
         var targetFolder = Path.Combine(settings.InstallDirectory,
             string.Concat(game.Name.Select(ch => Path.GetInvalidFileNameChars().Contains(ch) ? '_' : ch)));
-        if (Directory.Exists(targetFolder) && Directory.EnumerateFileSystemEntries(targetFolder).Any())
-        {
-            MessageBox.Show(this, "Der Zielordner ist nicht leer. Bitte wähle einen anderen Installationsordner.",
-                "Installationsordner belegt", MessageBoxButton.OK, MessageBoxImage.Warning);
-            return;
-        }
-
         var popup = new TransferProgressWindow("Herunterladen und installieren: " + game.Name) { Owner = this };
         activeTransfers.Add(popup);
         popup.Show();
@@ -350,6 +343,8 @@ public partial class MainWindow : Window
 
             if (extension == ".zip")
             {
+                if (Directory.Exists(targetFolder) && Directory.EnumerateFileSystemEntries(targetFolder).Any())
+                    throw new IOException("Der Zielordner ist nicht leer: " + targetFolder);
                 // Extraktion in einen frischen Ordner. Keine Dateien anderer Installationen überschreiben.
                 Directory.CreateDirectory(targetFolder);
                 try
@@ -434,24 +429,36 @@ public partial class MainWindow : Window
             }
             else
             {
-                var answer = MessageBox.Show(this,
-                    "Die Installationsdatei wurde heruntergeladen.\n\n" +
-                    "Möchtest du jetzt den EXE-Installationsassistenten starten?\n" +
-                    "Führe nur Installationsdateien aus vertrauenswürdigen Quellen aus.",
-                    "EXE-Installation starten", MessageBoxButton.YesNo,
-                    MessageBoxImage.Warning, MessageBoxResult.No);
-                if (answer == MessageBoxResult.Yes)
+                var savedType = settings.InstallerTypes.GetValueOrDefault(game.Id) ?? "manual";
+                var options = new InstallerOptionsWindow(game.Name, targetFolder, savedType) { Owner = this };
+                if (options.ShowDialog() == true)
                 {
-                    // Der Installer benötigt seine Datei bis zum Ende; deshalb in den gewählten Ordner verschieben.
-                    Directory.CreateDirectory(targetFolder);
-                    var installerPath = Path.Combine(targetFolder, Path.GetFileName(fileName));
-                    File.Move(tempPackage, installerPath, overwrite: true);
-                    System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(installerPath)
+                    // Save the installer outside the actual game destination; the installer
+                    // itself controls where game files are installed.
+                    var installerFileName = Path.GetFileName(fileName);
+                    if (string.IsNullOrWhiteSpace(installerFileName))
+                        installerFileName = "setup.exe";
+                    var installerPath = Path.Combine(settings.DownloadDirectory,
+                        "LANLauncher-" + Guid.NewGuid().ToString("N") + "-" + installerFileName);
+                    File.Move(tempPackage, installerPath);
+                    var info = new System.Diagnostics.ProcessStartInfo(installerPath)
                     {
                         UseShellExecute = true,
-                        WorkingDirectory = targetFolder
-                    });
-                    StatusText.Text = "Installationsassistent gestartet: " + installerPath;
+                        WorkingDirectory = settings.DownloadDirectory
+                    };
+                    if (options.InstallerType == "nsis")
+                    {
+                        // NSIS requires /D= as the final argument, without quotes.
+                        info.Arguments = "/D=" + targetFolder;
+                    }
+                    else if (options.InstallerType == "inno")
+                    {
+                        info.ArgumentList.Add("/DIR=" + targetFolder);
+                    }
+                    System.Diagnostics.Process.Start(info);
+                    settings.InstallerTypes[game.Id] = options.InstallerType;
+                    settings.Save();
+                    StatusText.Text = "Installationsassistent gestartet. Zielordner im Assistenten prüfen: " + targetFolder;
                 }
                 else
                     StatusText.Text = "EXE-Installation nicht gestartet.";
