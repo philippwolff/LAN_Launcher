@@ -9,6 +9,7 @@ builder.WebHost.UseUrls(builder.Configuration["ListenUrl"] ?? "http://0.0.0.0:80
 builder.Services.AddSingleton<GameCatalog>();
 builder.Services.AddSingleton<GameTagCatalog>();
 builder.Services.AddSingleton<ModCatalog>();
+builder.Services.AddSingleton<ServerLibraryService>();
 builder.WebHost.ConfigureKestrel(options => options.Limits.MaxRequestBodySize = 20L * 1024 * 1024 * 1024);
 builder.Services.Configure<Microsoft.AspNetCore.Http.Features.FormOptions>(options => options.MultipartBodyLengthLimit = 20L * 1024 * 1024 * 1024);
 var app = builder.Build();
@@ -16,6 +17,7 @@ var players = new ConcurrentDictionary<string, (PlayerInfo Player, DateTimeOffse
 var catalog = app.Services.GetRequiredService<GameCatalog>();
 var tagCatalog = app.Services.GetRequiredService<GameTagCatalog>();
 var modCatalog = app.Services.GetRequiredService<ModCatalog>();
+var libraryService = app.Services.GetRequiredService<ServerLibraryService>();
 var adminKey = Environment.GetEnvironmentVariable("LANLAUNCHER_AdminKey") ?? builder.Configuration["AdminKey"];
 if (string.IsNullOrWhiteSpace(adminKey))
     Console.WriteLine("WARNUNG: Admin-Funktionen deaktiviert. AdminKey per Umgebungsvariable LANLAUNCHER_AdminKey setzen.");
@@ -89,6 +91,32 @@ app.MapPost("/api/status", (StatusRequest req) =>
     players[req.ClientId] = (current.Player with { Status = req.Status, GameId = req.Status == "Im Spiel" ? req.GameId : null }, DateTimeOffset.UtcNow);
     return Results.Ok();
 });
+app.MapGet("/api/admin/library/check", (HttpRequest req) =>
+    !IsAdmin(req) ? Results.Unauthorized() : Results.Ok(libraryService.Check(false)));
+app.MapPost("/api/admin/library/check", (HttpRequest req) =>
+    !IsAdmin(req) ? Results.Unauthorized() : Results.Ok(libraryService.Check(true)));
+app.MapGet("/api/admin/library/export", (HttpRequest req) =>
+{
+    if (!IsAdmin(req)) return Results.Unauthorized();
+    var path = libraryService.Export();
+    return Results.File(path, "application/zip", "LANLauncher-Serverbibliothek.zip",
+        enableRangeProcessing: false);
+});
+app.MapPost("/api/admin/library/import", async (HttpRequest req) =>
+{
+    if (!IsAdmin(req)) return Results.Unauthorized();
+    if (!req.HasFormContentType) return Results.BadRequest("ZIP-Datei erwartet.");
+    var form = await req.ReadFormAsync();
+    var file = form.Files.GetFile("file");
+    if (file is null || file.Length == 0) return Results.BadRequest("Archiv fehlt.");
+    try
+    {
+        using var stream = file.OpenReadStream();
+        return Results.Ok(libraryService.Import(stream));
+    }
+    catch (Exception ex) when (ex is InvalidDataException or IOException or System.Text.Json.JsonException)
+    { return Results.BadRequest(ex.Message); }
+}).DisableAntiforgery();
 app.MapGet("/api/admin/check", (HttpRequest req) => IsAdmin(req) ? Results.Ok(new { status = "authorized" }) : Results.Unauthorized());
 app.MapGet("/api/admin/inbox", (HttpRequest req) =>
     !IsAdmin(req) ? Results.Unauthorized() : Results.Ok(
