@@ -289,3 +289,12 @@ Im Spielaktionen-Fenster werden vorhandene Tags angezeigt.
 API: GET /api/games/{id}/tags (lesen),
 PUT /api/admin/games/{id}/tags (nur mit X-Admin-Key).
 Server und Client muessen nach Pull origin neu gebaut werden.
+
+FARBE IN DER SPIELEBIBLIOTHEK:
+Spiele, die auf dem Server angeboten werden, aber auf diesem PC
+keine erkannte installierte Spiel-EXE haben, werden blau hinterlegt
+(#A9CFFF). Installierte Spiele behalten einen weissen Hintergrund.
+Ausgewaehlte Eintraege werden weiterhin hellblau markiert.
+Die Spielnamen bleiben in allen Faellen schwarz und gut lesbar.
+Nach Installation und erneutem Laden der Spieleliste wechselt die
+Darstellung automatisch. Client nach Pull origin neu erstellen.
