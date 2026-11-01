@@ -8,8 +8,30 @@ public partial class MainWindow
 {
     private GameTags pendingTags = new([], []);
 
-    private void AddTags_Click(object sender, RoutedEventArgs e)
+    private async void AddTags_Click(object sender, RoutedEventArgs e)
     {
+        if (server is null || string.IsNullOrWhiteSpace(AdminKeyBox.Password))
+        {
+            MessageBox.Show(this, "Bitte zuerst verbinden und einen Admin-Schlüssel eingeben.",
+                "Admin erforderlich", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+        try
+        {
+            using var check = AdminRequest(HttpMethod.Get, "/api/admin/check");
+            using var response = await http.SendAsync(check);
+            if (!response.IsSuccessStatusCode)
+            {
+                MessageBox.Show(this, "Ungültiger Admin-Schlüssel.", "Admin erforderlich",
+                    MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(this, ex.Message, "Admin-Prüfung", MessageBoxButton.OK, MessageBoxImage.Error);
+            return;
+        }
         var window = new GameTagsWindow("Tags für neues Spiel", pendingTags) { Owner = this };
         if (window.ShowDialog() == true) pendingTags = window.Tags;
     }
