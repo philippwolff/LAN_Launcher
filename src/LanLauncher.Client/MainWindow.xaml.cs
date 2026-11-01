@@ -132,13 +132,13 @@ public partial class MainWindow : Window
                 StartGame(game);
                 break;
             case GameActionsWindow.GameAction.Install:
-                Install_Click(sender, new RoutedEventArgs());
+                Install_Click(GamesList, new RoutedEventArgs());
                 break;
             case GameActionsWindow.GameAction.Download:
-                Download_Click(sender, new RoutedEventArgs());
+                Download_Click(GamesList, new RoutedEventArgs());
                 break;
             case GameActionsWindow.GameAction.Delete:
-                DeleteGame_Click(sender, new RoutedEventArgs());
+                DeleteGame_Click(GamesList, new RoutedEventArgs());
                 break;
         }
     }
