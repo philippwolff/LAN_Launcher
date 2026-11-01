@@ -118,3 +118,8 @@ Server-starten.cmd startet daher das Serverprojekt mit dem .NET 10 SDK ueber
 Dafuer muss das .NET 10 SDK installiert sein. Das Skript fragt den Admin-Schluessel
 ab und setzt LANLAUNCHER_AdminKey nur fuer diesen Startvorgang.
 Smart App Control muss nicht deaktiviert werden.
+
+STANDARD-INSTALLATIONSORDNER (CLIENT):
+Bei neuen Einstellungen ist C:\LAN_Launcher_Server\Games der Standard-Installationsordner.
+Bereits gespeicherte Installationsordner bleiben unveraendert und koennen
+ueber Einstellungen angepasst werden.
