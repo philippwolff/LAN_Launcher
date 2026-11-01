@@ -125,6 +125,14 @@ public partial class MainWindow : Window
         try { settings.Save(); }
         catch (Exception ex) { StatusText.Text = "Spielauswahl konnte nicht gespeichert werden: " + ex.Message; }
         var popup = new GameActionsWindow(game) { Owner = this };
+        var hasInstalledExe = settings.InstalledExecutables.TryGetValue(game.Id, out var installedExe)
+            && !string.IsNullOrWhiteSpace(installedExe) && File.Exists(installedExe);
+        if (!hasInstalledExe)
+        {
+            var gameFolder = GameExecutableFinder.GetInstallFolder(settings.InstallDirectory, game.Name);
+            hasInstalledExe = GameExecutableFinder.FindBest(gameFolder, game.Name) is not null;
+        }
+        popup.SetInstalled(hasInstalledExe);
         if (server is not null && !GameDisplayNameConverter.LocalOnlyIds.Contains(game.Id))
         {
             try
