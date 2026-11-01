@@ -263,3 +263,13 @@ ANMELDUNG PER ENTER:
 Im Feld Benutzername kann mit der Eingabetaste (Enter) direkt
 Verbinden ausgeloest werden. Der Verbinden-Button ist dafuer
 als Standardaktion des Hauptfensters markiert.
+
+LOKAL VERFUEGBARE SPIELE:
+Der Client merkt sich Spiele aus dem Serverkatalog in seinen lokalen
+Einstellungen. Wird ein Spiel spaeter vom Server entfernt, bleibt es
+in der Bibliothek sichtbar, sofern lokal noch eine Spiel-EXE vorhanden
+ist. Der Eintrag erhaelt den Zusatz (nur lokal verfuegbar).
+Starten, Spieleinstellungen und lokale Deinstallation bleiben moeglich.
+Serveraktionen wie Herunterladen und vom Server loeschen werden
+fuer diese Eintraege abgewiesen. Eine Neuinstallation des Clients
+ohne vorhandene Einstellungen kann diese Historie nicht rekonstruieren.
