@@ -99,7 +99,9 @@ app.MapGet("/api/admin/library/export", (HttpRequest req) =>
 {
     if (!IsAdmin(req)) return Results.Unauthorized();
     var path = libraryService.Export();
-    return Results.File(path, "application/zip", "LANLauncher-Serverbibliothek.zip",
+    var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read,
+        128 * 1024, FileOptions.SequentialScan | FileOptions.DeleteOnClose);
+    return Results.File(stream, "application/zip", "LANLauncher-Serverbibliothek.zip",
         enableRangeProcessing: false);
 });
 app.MapPost("/api/admin/library/import", async (HttpRequest req) =>
