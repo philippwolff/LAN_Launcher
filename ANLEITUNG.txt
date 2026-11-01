@@ -153,3 +153,14 @@ Assets\LAN_Party_Client.ico existiert. Smart App Control kann selbst
 erstellte, nicht signierte EXE-Dateien weiterhin blockieren; dann
 stattdessen 'dotnet run --project src\LanLauncher.Client' verwenden.
 Die EXE ist ein lokales Build-Ergebnis und wird nicht auf GitHub gespeichert.
+
+KORREKTUR CLIENT-EXE-ABSTURZ (WPF):
+Bei der bisherigen komprimierten Single-File-Version konnte beim Start
+System.DllNotFoundException in WPF (SetWindowLongPtrWndProc) auftreten.
+Client-EXE-erstellen.cmd erzeugt daher jetzt eine eigenstaendige
+Mehrdateien-Version im Ordner src\LanLauncher.Client\LAN_Party_Client.
+Die startbare Datei heisst dort LAN_Party_Client.exe.
+WICHTIG: EXE nicht einzeln aus dem Ordner herauskopieren; die DLLs und
+weiteren Dateien muessen daneben liegen. Fuer eine Desktop-Verknuepfung
+die EXE im Unterordner als Ziel verwenden.
+Die alte EXE direkt im Projektordner wird beim Erstellen entfernt.
