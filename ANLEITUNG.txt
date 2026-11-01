@@ -328,3 +328,37 @@ bereits laufendem Server jetzt ausdruecklich auf einen Neustart hin.
 Den bisherigen Server mit Strg+C beenden, GitHub Desktop Pull origin,
 Server-starten.cmd erneut starten und danach den Client aktualisieren.
 Der Client zeigt bei diesem Fehler jetzt eine verstaendliche Meldung.
+
+MODS ALS SEPARATE SPIELE (BEISPIEL COMPANY OF HEROES / BLITZKRIEG):
+1. Company of Heroes als eigenstaendiges Spiel auf den Server laden.
+   Der Hauptinstaller benoetigt setup.exe und alle setup-*.bin im
+   selben Ordner; deshalb den gesamten Ordner als ZIP verpacken.
+2. Die Blitzkrieg-Installer und Patches als SEPARATES ZIP hochladen.
+   Spielname: Company of Heroes - Blitzkrieg Mod.
+   Die ZIP-Datei muss die Original-Unterordner und alle Installer
+   enthalten. Keine einzelne EXE hochladen.
+3. Im Mod-Eintrag Spielaktionen -> Mod zuordnen (Admin) aufrufen.
+   Hauptspiel Company of Heroes waehlen.
+   Start-EXE: Blitzkrieg Launcher.exe
+   Installationsschritte: relative Pfade der Installer IM MOD-ZIP,
+   jeweils eine Zeile, z.B. Installer/Blitzkrieg_4.8.0.0_Complete.exe.
+   Die korrekte Reihenfolge der Patches muss der Admin anhand der
+   jeweiligen Mod-Anleitung festlegen; Dateinamen allein reichen
+   nicht zur sicheren Bestimmung.
+4. Der Client prueft vor der Mod-Installation, ob das Hauptspiel
+   installiert ist. Er entpackt das Mod-ZIP in einen temporaeren
+   Ordner und startet die Installer nacheinander. Im jeweiligen
+   Installer den Company-of-Heroes-Ordner als Ziel angeben.
+   Nach jedem Installer bestaetigen, dass er fertig ist.
+5. Nach dem letzten Schritt wird Blitzkrieg Launcher.exe direkt
+   im Company-of-Heroes-Ordner gesucht und als Mod-Startdatei
+   gespeichert. Beide Spiele sind getrennt startbar.
+6. Mod-Deinstallation: Der Launcher loescht niemals automatisch
+   den gemeinsam verwendeten Hauptspielordner. Den offiziellen
+   Mod-Deinstaller nutzen, sofern vorhanden.
+Serverkonfiguration: mod-configurations.json im StoragePath.
+GET /api/games/{id}/mod; PUT /api/admin/games/{id}/mod
+(nur Admin). Server und Client nach Pull origin neu bauen.
+EINSCHRAENKUNG: Mehrstufige Mod-Installationen brauchen ein ZIP
+und die explizite Installer-Reihenfolge. Automatische Patch-
+Reihenfolge, Rollback und Wiederaufnahme sind noch nicht umgesetzt.
