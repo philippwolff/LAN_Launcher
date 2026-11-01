@@ -1,0 +1,27 @@
+<Window x:Class="LanLauncher.Client.ModHelpWindow" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" Title="Hilfe – Mod zuordnen" Width="760" Height="650" MinWidth="560" MinHeight="450" WindowStartupLocation="CenterOwner" Background="#C0C0C0" FontFamily="Tahoma" FontSize="12">
+<Grid Margin="14"><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+<Border Background="#000080" Padding="10" Margin="0,0,0,12"><TextBlock Text="HILFE – MOD ZUORDNEN" Foreground="White" FontWeight="Bold" FontSize="15"/></Border>
+<ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Background="White" BorderBrush="#808080" BorderThickness="2" Padding="14">
+<StackPanel>
+<TextBlock Text="Wozu dient diese Funktion?" FontWeight="Bold" FontSize="15" Margin="0,0,0,8"/>
+<TextBlock Text="Ein Mod ist ein eigener Eintrag in der Spielebibliothek, benötigt aber ein bereits installiertes Hauptspiel. Die Mod-Installer können Dateien in denselben Ordner wie das Hauptspiel installieren. Der Mod erhält anschließend eine eigene Start-EXE." TextWrapping="Wrap" Margin="0,0,0,16"/>
+<TextBlock Text="1. Hauptspiel auswählen" FontWeight="Bold" Margin="0,0,0,6"/>
+<TextBlock Text="Hier das Spiel wählen, auf dem der Mod basiert, z. B. Company of Heroes. Öffne dieses Fenster beim separaten Bibliothekseintrag „Company of Heroes - Blitzkrieg Mod“, nicht beim Hauptspiel selbst. Das Hauptspiel muss auf jedem Client bereits installiert sein." TextWrapping="Wrap" Margin="0,0,0,16"/>
+<TextBlock Text="2. Start-EXE des Mods" FontWeight="Bold" Margin="0,0,0,6"/>
+<TextBlock Text="Relativer Pfad der EXE im Installationsordner des Hauptspiels. Beispiel:" TextWrapping="Wrap"/>
+<Border Background="#F0F0F0" Padding="9" Margin="0,5,0,14"><TextBlock Text="Blitzkrieg Launcher.exe" FontFamily="Consolas" FontSize="13"/></Border>
+<TextBlock Text="Wenn die EXE in einem Unterordner liegt, z. B. Mods\Blitzkrieg\Launcher.exe, den Unterordner mit angeben. Keine absoluten Laufwerkspfade verwenden." TextWrapping="Wrap" Margin="0,0,0,16"/>
+<TextBlock Text="3. Installationsschritte" FontWeight="Bold" Margin="0,0,0,6"/>
+<TextBlock Text="Jede Zeile bezeichnet genau eine EXE innerhalb des hochgeladenen Mod-ZIP. Die Zeilen werden nacheinander ausgeführt. Ordnernamen und Dateinamen müssen exakt zur Struktur im ZIP passen. Beispiel für die im Screenshot sichtbaren Blitzkrieg-Dateien:" TextWrapping="Wrap" Margin="0,0,0,6"/>
+<Border Background="#F0F0F0" Padding="9" Margin="0,0,0,8"><TextBlock FontFamily="Consolas" FontSize="12" TextWrapping="Wrap" Text="Installer/Blitzkrieg_4.8.0.0_Complete.exe&#10;Installer/Blitzkrieg_4.8.6.0_MapPack.exe&#10;Installer/Blitzkrieg_4.9.7_Patch.exe&#10;Installer/Blitzkrieg_4.9.8_Patch.exe&#10;Installer/Blitzkrieg_MapPack_II.exe"/></Border>
+<TextBlock Text="ACHTUNG: Diese Reihenfolge ist nur ein Beispiel und nicht als korrekt bestätigt. Die benötigten Patches und ihre Reihenfolge müssen anhand der Mod-Anleitung geprüft werden." TextWrapping="Wrap" FontWeight="Bold" Foreground="#800000" Margin="0,0,0,16"/>
+<TextBlock Text="4. ZIP-Ordnerstruktur" FontWeight="Bold" Margin="0,0,0,6"/>
+<TextBlock Text="Wenn im ZIP zuerst ein Ordner „Installer“ liegt, beginnen die Pfade mit „Installer/“. Liegen die EXE-Dateien direkt im ZIP, entfällt „Installer/“. Der Installer des Hauptspiels (setup.exe zusammen mit setup-*.bin) gehört zum separaten Hauptspielpaket. Alle zu einer setup.exe gehörenden BIN-Dateien müssen beim Start in derselben relativen Ordnerstruktur vorhanden sein." TextWrapping="Wrap" Margin="0,0,0,16"/>
+<TextBlock Text="5. Was passiert beim Installieren?" FontWeight="Bold" Margin="0,0,0,6"/>
+<TextBlock Text="Der Launcher lädt das Mod-ZIP herunter, entpackt es vorübergehend und startet die eingetragenen Installer nacheinander. Du bestätigst jeden Schritt. Im Installationsassistenten gegebenenfalls den Ordner des Hauptspiels als Ziel wählen. Nach dem letzten Schritt sucht der Launcher die angegebene Mod-EXE im Hauptspielordner und speichert sie für den getrennten Spielstart." TextWrapping="Wrap" Margin="0,0,0,16"/>
+<TextBlock Text="6. Wichtige Hinweise" FontWeight="Bold" Margin="0,0,0,6"/>
+<TextBlock Text="• Die Zuordnung wird auf dem Server gespeichert, die installierten Dateien liegen lokal auf jedem Client.&#10;• Mods mit mehreren Installern müssen als ZIP hochgeladen werden.&#10;• Ein Mod kann gemeinsame Spieldateien verändern. Deshalb löscht der Launcher bei der Mod-Deinstallation nicht automatisch den Hauptspielordner.&#10;• Ein falscher Installationspfad kann dazu führen, dass die Mod-EXE nicht gefunden wird.&#10;• Die Installation von Patches erfolgt nicht automatisch anhand der Versionsnummer." TextWrapping="Wrap" Margin="0,0,0,10"/>
+</StackPanel>
+</ScrollViewer>
+<Button Grid.Row="2" Content="Schließen" HorizontalAlignment="Right" Width="120" Height="30" Margin="0,12,0,0" IsCancel="True" Click="Close_Click"/>
+</Grid></Window>
