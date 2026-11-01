@@ -7,6 +7,8 @@ internal static class LocalGameLibrary
 {
     public static GameInfo[] Merge(GameInfo[] remote, LauncherSettings settings)
     {
+        GameNotInstalledConverter.ServerGameIds = remote.Select(g => g.Id)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
         foreach (var game in remote)
             settings.KnownGames[game.Id] = game;
         var remoteIds = remote.Select(g => g.Id).ToHashSet(StringComparer.OrdinalIgnoreCase);
