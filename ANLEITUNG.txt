@@ -362,3 +362,32 @@ GET /api/games/{id}/mod; PUT /api/admin/games/{id}/mod
 EINSCHRAENKUNG: Mehrstufige Mod-Installationen brauchen ein ZIP
 und die explizite Installer-Reihenfolge. Automatische Patch-
 Reihenfolge, Rollback und Wiederaufnahme sind noch nicht umgesetzt.
+
+SERVERBIBLIOTHEK SICHERN / UEBERTRAGEN (NUR ADMIN):
+Im Client nach Verbinden und Eingabe des Admin-Schluessels:
+"Serverbibliothek Im-/Export" -> Ja exportiert die gesamte
+Spielebibliothek als ZIP, Nein importiert ein zuvor exportiertes ZIP.
+Gesichert werden games.json, game-tags.json, launch-paths.json,
+mod-configurations.json und alle ZIP-/EXE-Pakete in Packages.
+Die Server-Inbox und lokale Client-Installationen gehoeren nicht
+zur exportierten Bibliothek. Der Export kann bei grossen Spielen
+sehr gross werden und ausreichend freien Speicherplatz benoetigen.
+Beim Import werden die alten Serverdaten zunaechst im Unterordner
+Backup-<Zeitstempel> im Server-Speicherordner gesichert. Die
+importierten Metadaten ersetzen die vorhandenen Metadaten; Pakete
+werden in Packages kopiert. Danach MUSS der Server neu gestartet
+werden, damit die im Arbeitsspeicher gehaltenen Kataloge neu laden.
+Der Admin-Schluessel wird NICHT exportiert. Er muss auf dem neuen
+Server gesondert konfiguriert werden.
+"Serverbibliothek pruefen" zeigt Katalogeintraege, vorhandene und
+fehlende Pakete sowie Pakete ohne Katalogeintrag. Verwaiste Pakete
+koennen als "Wiederhergestellt - <ID>" registriert werden; Namen
+und Versionen lassen sich aus reinen Paket-IDs nicht rekonstruieren.
+Auch nach einer Reparatur ist ein Server-Neustart erforderlich.
+Beim Umzug durch Kopieren des gesamten Server-Speicherordners
+einschliesslich games.json und Packages werden Spiele nach dem
+Neustart automatisch erkannt, sofern StoragePath auf den kopierten
+Ordner zeigt. Serverbibliothek pruefen hilft bei fehlenden Eintraegen.
+ACHTUNG: Vor dem Import ausreichend Speicherplatz fuer ZIP,
+Import und Sicherung einplanen. Import nur aus vertrauenswuerdigen
+LAN-Launcher-Exporten durchfuehren.
