@@ -319,3 +319,12 @@ WICHTIG: Erkennung erfolgt nur bei Spielen, die ueber den Launcher
 gestartet wurden. Wenn ein vorgeschalteter Starter-Prozess beendet
 wird, waehrend das eigentliche Spiel weiterlaeuft, kann der Status
 vorzeitig auf Online wechseln.
+
+FEHLER 404 BEIM TAGS BEARBEITEN:
+Ein 404 bei /api/games/{id}/tags bedeutet, dass der laufende
+Server die Tag-API nicht anbietet (alte Version) oder das Spiel
+nicht mehr im Serverkatalog steht. Server-starten.cmd weist bei
+bereits laufendem Server jetzt ausdruecklich auf einen Neustart hin.
+Den bisherigen Server mit Strg+C beenden, GitHub Desktop Pull origin,
+Server-starten.cmd erneut starten und danach den Client aktualisieren.
+Der Client zeigt bei diesem Fehler jetzt eine verstaendliche Meldung.
