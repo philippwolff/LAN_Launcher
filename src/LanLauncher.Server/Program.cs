@@ -8,6 +8,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.WebHost.UseUrls(builder.Configuration["ListenUrl"] ?? "http://0.0.0.0:8080");
 builder.Services.AddSingleton<GameCatalog>();
 builder.Services.AddSingleton<GameTagCatalog>();
+builder.Services.AddSingleton<GameStartNoticeCatalog>();
 builder.Services.AddSingleton<ModCatalog>();
 builder.Services.AddSingleton<ServerLibraryService>();
 builder.WebHost.ConfigureKestrel(options => options.Limits.MaxRequestBodySize = 20L * 1024 * 1024 * 1024);
@@ -16,6 +17,7 @@ var app = builder.Build();
 var players = new ConcurrentDictionary<string, (PlayerInfo Player, DateTimeOffset Seen)>();
 var catalog = app.Services.GetRequiredService<GameCatalog>();
 var tagCatalog = app.Services.GetRequiredService<GameTagCatalog>();
+var startNotices = app.Services.GetRequiredService<GameStartNoticeCatalog>();
 var modCatalog = app.Services.GetRequiredService<ModCatalog>();
 var libraryService = app.Services.GetRequiredService<ServerLibraryService>();
 var adminKey = Environment.GetEnvironmentVariable("LANLAUNCHER_AdminKey") ?? builder.Configuration["AdminKey"];
@@ -33,6 +35,16 @@ bool IsAdmin(HttpRequest request)
 
 app.MapGet("/api/health", () => Results.Ok(new { status = "ok", service = "LAN Launcher" }));
 app.MapGet("/api/games", () => Results.Ok(catalog.List()));
+app.MapGet("/api/games/{id}/start-notice", (string id) =>
+    catalog.List().Any(g => g.Id == id)
+        ? Results.Ok(new GameStartNotice(startNotices.Get(id))) : Results.NotFound());
+app.MapPut("/api/admin/games/{id}/start-notice", (HttpRequest req, string id, GameStartNotice notice) =>
+{
+    if (!IsAdmin(req)) return Results.Unauthorized();
+    if (!catalog.List().Any(g => g.Id == id)) return Results.NotFound();
+    try { startNotices.Set(id, notice.Text ?? ""); return Results.Ok(new GameStartNotice(startNotices.Get(id))); }
+    catch (ArgumentException ex) { return Results.BadRequest(ex.Message); }
+});
 app.MapGet("/api/games/{id}/tags", (string id) =>
     catalog.List().Any(g => g.Id == id) ? Results.Ok(tagCatalog.Get(id)) : Results.NotFound());
 app.MapPut("/api/admin/games/{id}/tags", (HttpRequest req, string id, GameTags tags) =>
@@ -153,3 +165,5 @@ app.Run();
 public record ImportGameRequest(string FileName, string Name, string Version, string? Description);
 
 public record LaunchPathRequest(string Path);
+
+public record GameStartNotice(string Text);
