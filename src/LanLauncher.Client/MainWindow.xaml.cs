@@ -78,7 +78,7 @@ public partial class MainWindow : Window
         if (server is null) return;
         try
         {
-            await http.PostAsJsonAsync(server + "/api/status", new StatusRequest(clientId, "Online", null));
+            await UpdatePresenceAsync();
             using var gamesRequest = new HttpRequestMessage(HttpMethod.Get, server + "/api/games");
             gamesRequest.Headers.CacheControl = new System.Net.Http.Headers.CacheControlHeaderValue { NoCache = true, NoStore = true };
             using var gamesResponse = await http.SendAsync(gamesRequest);
@@ -96,7 +96,13 @@ public partial class MainWindow : Window
                     ?? sortedGames.FirstOrDefault();
             }
             finally { updatingGames = false; }
-            PlayersList.ItemsSource = players.Select(p => p.Name + " — " + p.Status + (p.GameId is null ? "" : " (" + p.GameId + ")")).ToArray();
+            var gameNames = games.Concat(settings.KnownGames.Values)
+                .GroupBy(g => g.Id, StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(g => g.Key, g => g.First().Name, StringComparer.OrdinalIgnoreCase);
+            PlayersList.ItemsSource = players.Select(p =>
+                p.Name + " — " + (p.Status == "Im Spiel" && p.GameId is not null
+                    ? "Spielt: " + (gameNames.TryGetValue(p.GameId, out var title) ? title : p.GameId)
+                    : "Online")).ToArray();
             StatusText.Text = "Verbunden — " + players.Length + " Spieler online";
         }
         catch (Exception ex) { StatusText.Text = "Server nicht erreichbar: " + ex.Message; }
@@ -338,11 +344,12 @@ public partial class MainWindow : Window
         }
         try
         {
-            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(executable)
+            var process = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(executable)
             {
                 UseShellExecute = true,
                 WorkingDirectory = Path.GetDirectoryName(executable)!
             });
+            TrackGameProcess(process, game.Id);
             StatusText.Text = "Spiel gestartet: " + game.Name;
         }
         catch (Exception ex) { StatusText.Text = "Spielstart fehlgeschlagen: " + ex.Message; }
