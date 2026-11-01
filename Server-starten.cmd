@@ -12,6 +12,13 @@ if errorlevel 1 (
   pause
   exit /b 1
 )
+powershell -NoProfile -Command "try { $r=Invoke-WebRequest -Uri 'http://127.0.0.1:8080/api/health' -TimeoutSec 2 -UseBasicParsing; if ($r.StatusCode -eq 200) { exit 0 } } catch {} ; exit 1" >nul 2>nul
+if not errorlevel 1 (
+  echo LAN Launcher Server laeuft bereits auf Port 8080.
+  echo Es wird kein zweiter Server gestartet.
+  pause
+  exit /b 0
+)
 if not defined LANLAUNCHER_AdminKey (
   echo Bitte Admin-Schluessel eingeben.
   echo Der Schluessel wird nicht im Repository gespeichert.
