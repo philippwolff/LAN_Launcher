@@ -147,16 +147,41 @@ public partial class MainWindow : Window
     {
         if (!settings.InstalledExecutables.TryGetValue(game.Id, out var executable) || !File.Exists(executable))
         {
-            var selection = MessageBox.Show(this,
-                "Für dieses Spiel wurde noch keine ausführbare Datei hinterlegt.\n\n" +
-                "Möchtest du die bereits installierte Spiel-EXE jetzt auswählen?",
-                "Spielstart einrichten", MessageBoxButton.YesNo, MessageBoxImage.Question);
-            if (selection != MessageBoxResult.Yes) return;
-            var picker = new OpenFileDialog { Filter = "Anwendungen (*.exe)|*.exe", CheckFileExists = true };
-            if (picker.ShowDialog(this) != true) return;
-            executable = picker.FileName;
-            settings.InstalledExecutables[game.Id] = executable;
-            settings.Save();
+            var installFolder = GameExecutableFinder.GetInstallFolder(settings.InstallDirectory, game.Name);
+            var detected = GameExecutableFinder.FindBest(installFolder, game.Name);
+            if (detected is not null)
+            {
+                var confirmation = MessageBox.Show(this,
+                    "Mögliche Spiel-EXE automatisch gefunden:\n" + detected +
+                    "\n\nSoll diese Datei zum Starten verwendet werden?",
+                    "Spiel-EXE erkannt", MessageBoxButton.YesNo, MessageBoxImage.Question);
+                if (confirmation == MessageBoxResult.Yes)
+                {
+                    executable = detected;
+                    settings.InstalledExecutables[game.Id] = executable;
+                    settings.Save();
+                }
+            }
+            if (string.IsNullOrWhiteSpace(executable) || !File.Exists(executable))
+            {
+                var selection = MessageBox.Show(this,
+                    "Keine eindeutige Spiel-EXE gefunden.\n\n" +
+                    "Möchtest du die ausführbare Datei manuell auswählen?\n" +
+                    "Der Dateidialog öffnet sich im Installationsordner:\n" + installFolder,
+                    "Spielstart einrichten", MessageBoxButton.YesNo, MessageBoxImage.Question);
+                if (selection != MessageBoxResult.Yes) return;
+                var picker = new OpenFileDialog
+                {
+                    Title = "Spiel-EXE auswählen",
+                    Filter = "Anwendungen (*.exe)|*.exe",
+                    CheckFileExists = true,
+                    InitialDirectory = Directory.Exists(installFolder) ? installFolder : settings.InstallDirectory
+                };
+                if (picker.ShowDialog(this) != true) return;
+                executable = picker.FileName;
+                settings.InstalledExecutables[game.Id] = executable;
+                settings.Save();
+            }
         }
         try
         {
@@ -363,21 +388,12 @@ public partial class MainWindow : Window
                         archive.ExtractToDirectory(targetFolder, overwriteFiles: false);
                     });
                     StatusText.Text = "Spiel entpackt nach: " + targetFolder;
-                    var executables = Directory.GetFiles(targetFolder, "*.exe", SearchOption.AllDirectories)
-                        .Where(path => !Path.GetFileName(path).Contains("unins", StringComparison.OrdinalIgnoreCase)
-                                    && !Path.GetFileName(path).Contains("uninstall", StringComparison.OrdinalIgnoreCase))
-                        .ToArray();
-                    string? executable = null;
-                    if (executables.Length == 1)
-                    {
-                        executable = executables[0];
-                    }
-                    else if (executables.Length > 1)
+                    var executable = GameExecutableFinder.FindBest(targetFolder, game.Name);
+                    if (executable is null)
                     {
                         MessageBox.Show(this,
-                            "Das Spiel wurde entpackt. Es wurden mehrere EXE-Dateien gefunden.\n" +
-                            "Bitte wähle die richtige Spiel- oder Setup-EXE aus.",
-                            "EXE auswählen", MessageBoxButton.OK, MessageBoxImage.Information);
+                            "Keine eindeutige Spiel-EXE erkannt. Bitte wähle die richtige Datei aus.",
+                            "Spiel-EXE auswählen", MessageBoxButton.OK, MessageBoxImage.Information);
                         var executableDialog = new OpenFileDialog
                         {
                             Title = "Spiel-EXE auswählen",
@@ -385,10 +401,7 @@ public partial class MainWindow : Window
                             InitialDirectory = targetFolder,
                             CheckFileExists = true
                         };
-                        if (executableDialog.ShowDialog(this) == true &&
-                            Path.GetFullPath(executableDialog.FileName).StartsWith(
-                                Path.GetFullPath(targetFolder).TrimEnd(Path.DirectorySeparatorChar) +
-                                Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
+                        if (executableDialog.ShowDialog(this) == true)
                             executable = executableDialog.FileName;
                     }
 
