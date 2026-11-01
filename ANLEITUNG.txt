@@ -164,3 +164,12 @@ WICHTIG: EXE nicht einzeln aus dem Ordner herauskopieren; die DLLs und
 weiteren Dateien muessen daneben liegen. Fuer eine Desktop-Verknuepfung
 die EXE im Unterordner als Ziel verwenden.
 Die alte EXE direkt im Projektordner wird beim Erstellen entfernt.
+
+AUTOMATISCHE DESKTOPVERKNUEPFUNG:
+Client-EXE-erstellen.cmd erstellt nach erfolgreichem Publish automatisch
+die Verknuepfung "LAN Party Client" auf dem Desktop des angemeldeten
+Windows-Benutzers. Ziel ist die EXE im LAN_Party_Client-Unterordner,
+Arbeitsverzeichnis ist derselbe Ordner; das EXE-Icon wird verwendet.
+Eine bestehende gleichnamige Verknuepfung wird aktualisiert.
+Falls das Anlegen fehlschlaegt, bleibt die EXE nutzbar und das Skript
+zeigt eine Warnung an. Keine Administratorrechte erforderlich.
