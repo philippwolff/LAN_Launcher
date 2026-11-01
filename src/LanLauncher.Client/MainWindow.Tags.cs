@@ -66,8 +66,20 @@ public partial class MainWindow
                     MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
-            var current = await http.GetFromJsonAsync<GameTags>(
+            using var tagsResponse = await http.GetAsync(
                 server + "/api/games/" + Uri.EscapeDataString(game.Id) + "/tags");
+            if (tagsResponse.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                MessageBox.Show(this,
+                    "Der Server bietet für dieses Spiel noch keine Tag-Verwaltung an.\n\n" +
+                    "Mögliche Ursache: Auf Port 8080 läuft noch eine ältere Serverversion.\n" +
+                    "Bitte den bisherigen Server beenden und Server-starten.cmd erneut ausführen.\n" +
+                    "Prüfe außerdem, ob das Spiel noch auf dem Server vorhanden ist.",
+                    "Tag-Verwaltung nicht verfügbar", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+            tagsResponse.EnsureSuccessStatusCode();
+            var current = await tagsResponse.Content.ReadFromJsonAsync<GameTags>();
             var dialog = new GameTagsWindow(game.Name, current) { Owner = this };
             if (dialog.ShowDialog() != true) return;
             await SaveTagsAsync(game.Id, dialog.Tags);
