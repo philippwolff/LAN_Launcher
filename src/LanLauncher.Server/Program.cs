@@ -7,11 +7,13 @@ using LanLauncher.Server;
 var builder = WebApplication.CreateBuilder(args);
 builder.WebHost.UseUrls(builder.Configuration["ListenUrl"] ?? "http://0.0.0.0:8080");
 builder.Services.AddSingleton<GameCatalog>();
+builder.Services.AddSingleton<GameTagCatalog>();
 builder.WebHost.ConfigureKestrel(options => options.Limits.MaxRequestBodySize = 20L * 1024 * 1024 * 1024);
 builder.Services.Configure<Microsoft.AspNetCore.Http.Features.FormOptions>(options => options.MultipartBodyLengthLimit = 20L * 1024 * 1024 * 1024);
 var app = builder.Build();
 var players = new ConcurrentDictionary<string, (PlayerInfo Player, DateTimeOffset Seen)>();
 var catalog = app.Services.GetRequiredService<GameCatalog>();
+var tagCatalog = app.Services.GetRequiredService<GameTagCatalog>();
 var adminKey = Environment.GetEnvironmentVariable("LANLAUNCHER_AdminKey") ?? builder.Configuration["AdminKey"];
 if (string.IsNullOrWhiteSpace(adminKey))
     Console.WriteLine("WARNUNG: Admin-Funktionen deaktiviert. AdminKey per Umgebungsvariable LANLAUNCHER_AdminKey setzen.");
@@ -27,6 +29,15 @@ bool IsAdmin(HttpRequest request)
 
 app.MapGet("/api/health", () => Results.Ok(new { status = "ok", service = "LAN Launcher" }));
 app.MapGet("/api/games", () => Results.Ok(catalog.List()));
+app.MapGet("/api/games/{id}/tags", (string id) =>
+    catalog.List().Any(g => g.Id == id) ? Results.Ok(tagCatalog.Get(id)) : Results.NotFound());
+app.MapPut("/api/admin/games/{id}/tags", (HttpRequest req, string id, GameTags tags) =>
+{
+    if (!IsAdmin(req)) return Results.Unauthorized();
+    if (!catalog.List().Any(g => g.Id == id)) return Results.NotFound();
+    try { tagCatalog.Set(id, tags); return Results.Ok(tagCatalog.Get(id)); }
+    catch (ArgumentException e) { return Results.BadRequest(e.Message); }
+});
 app.MapGet("/api/games/{id}/package", (string id) =>
 {
     var package = catalog.Package(id);
