@@ -438,3 +438,18 @@ einschliesslich lokal verfuegbarer Spiele.
 Die Tags werden beim Aktualisieren der Spieleliste vom Server
 geladen. Filter stehen allen Spielern ohne Admin-Schluessel
 zur Verfuegung; nur das Bearbeiten der Tags benoetigt Admin-Rechte.
+
+LOKAL HERUNTERGELADENES SPIELPAKET INSTALLIEREN:
+In den Spielaktionen gibt es die Schaltflaeche
+"Installieren (heruntergeladenes Paket)". Sie ist nur aktiv,
+wenn fuer dieses Spiel zuvor "Nur Paket herunterladen"
+erfolgreich abgeschlossen wurde und die ZIP-/EXE-Datei noch
+am gespeicherten Pfad existiert. Der Pfad wird pro Spiel in
+den lokalen Client-Einstellungen gespeichert.
+Beim Klick installiert der Launcher das lokale Paket ohne
+erneuten Download vom Server. Die normale ZIP-Entpackung,
+EXE-Installer-Auswahl und die Mod-Installationsschritte werden
+wiederverwendet. Die heruntergeladene Originaldatei bleibt
+nach der Installation erhalten.
+Wird die Datei verschoben oder geloescht, ist die Schaltflaeche
+beim naechsten Oeffnen der Spielaktionen wieder deaktiviert.
