@@ -14,6 +14,16 @@ public partial class GameActionsWindow : Window
         GameTitle.Text = game.Name + " (Version " + game.Version + ")";
     }
 
+    public void SetOffline(bool offline)
+    {
+        DownloadAndInstallButton.IsEnabled = !offline;
+        DownloadButton.IsEnabled = !offline;
+        DeleteButton.IsEnabled = !offline;
+        ModButton.IsEnabled = !offline;
+        NoticeButton.IsEnabled = !offline;
+        TagsButton.IsEnabled = !offline;
+    }
+
     public void SetDownloaded(bool downloaded) => LocalInstallButton.IsEnabled = downloaded;
 
     public void SetInstalled(bool installed)
