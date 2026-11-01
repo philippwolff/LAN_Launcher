@@ -32,6 +32,18 @@ app.MapGet("/api/games/{id}/package", (string id) =>
     var package = catalog.Package(id);
     return package is null ? Results.NotFound() : Results.File(package.Value.Path, "application/octet-stream", package.Value.Name);
 });
+app.MapGet("/api/games/{id}/launch-path", (string id) =>
+{
+    var path = catalog.GetLaunchPath(id);
+    return path is null ? Results.NotFound() : Results.Ok(new LaunchPathRequest(path));
+});
+app.MapPut("/api/admin/games/{id}/launch-path", (HttpRequest req, string id, LaunchPathRequest data) =>
+{
+    if (!IsAdmin(req)) return Results.Unauthorized();
+    try { catalog.SetLaunchPath(id, data.Path); return Results.Ok(); }
+    catch (ArgumentException ex) { return Results.BadRequest(ex.Message); }
+    catch (KeyNotFoundException) { return Results.NotFound(); }
+});
 app.MapGet("/api/players", () => Results.Ok(players.Values
     .Where(x => DateTimeOffset.UtcNow - x.Seen < TimeSpan.FromSeconds(45))
     .Select(x => x.Player).OrderBy(x => x.Name).ToArray()));
@@ -86,3 +98,5 @@ app.MapDelete("/api/admin/games/{id}", (HttpRequest req, string id) =>
 app.Run();
 
 public record ImportGameRequest(string FileName, string Name, string Version, string? Description);
+
+public record LaunchPathRequest(string Path);
