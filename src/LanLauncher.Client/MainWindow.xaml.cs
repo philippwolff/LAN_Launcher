@@ -185,6 +185,9 @@ public partial class MainWindow : Window
             case GameActionsWindow.GameAction.Delete:
                 DeleteGame_Click(GamesList, new RoutedEventArgs());
                 break;
+            case GameActionsWindow.GameAction.Notice:
+                EditStartNotice(game);
+                break;
             case GameActionsWindow.GameAction.Mod:
                 EditMod(game);
                 break;
@@ -369,6 +372,7 @@ public partial class MainWindow : Window
             });
             TrackGameProcess(process, game.Id);
             StatusText.Text = "Spiel gestartet: " + game.Name;
+            await ShowGameStartNoticeAsync(game);
         }
         catch (Exception ex) { StatusText.Text = "Spielstart fehlgeschlagen: " + ex.Message; }
     }
