@@ -483,7 +483,8 @@ public partial class MainWindow : Window
             using var multipart = new MultipartFormDataContent();
             using var file = File.OpenRead(dialog.FileName);
             using var stream = new ProgressStreamContent(file,
-                (sent, total) => Dispatcher.InvokeAsync(() => popup.Update(sent, total)), popup.Cancellation);
+                (sent, total) => Dispatcher.InvokeAsync(() =>
+                    { if (total > 0 && sent >= total) popup.Finishing(); else popup.Update(sent, total); }), popup.Cancellation);
             stream.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
             multipart.Add(stream, "file", Path.GetFileName(dialog.FileName));
             multipart.Add(new StringContent(GameNameBox.Text), "name");
