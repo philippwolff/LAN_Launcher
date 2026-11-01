@@ -306,3 +306,16 @@ erkannt wird, sind die Schaltflaechen "Starten" und
 "Spiel deinstallieren" ausgegraut und nicht anklickbar.
 Bei vorhandener Installation bleiben beide Schaltflaechen aktiv.
 Die Pruefung erfolgt beim Oeffnen des Spielaktionen-Fensters.
+
+SPIELSTATUS ANDERER BENUTZER:
+Im rechten Bereich "Spieler online" erscheint fuer Spieler, die ein
+Spiel ueber den LAN Launcher gestartet haben, "Spielt: <Spielname>".
+Der Client meldet dazu beim Start die Spiel-ID an den Server und
+aktualisiert den Status beim regelmaessigen Refresh (10 Sekunden).
+Wenn der gestartete Prozess beendet wurde, meldet der Client wieder
+"Online". Der Server setzt den Status fuer inaktive Clients nach
+45 Sekunden nicht mehr als online an.
+WICHTIG: Erkennung erfolgt nur bei Spielen, die ueber den Launcher
+gestartet wurden. Wenn ein vorgeschalteter Starter-Prozess beendet
+wird, waehrend das eigentliche Spiel weiterlaeuft, kann der Status
+vorzeitig auf Online wechseln.
