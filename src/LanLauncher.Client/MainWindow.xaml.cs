@@ -577,7 +577,7 @@ public partial class MainWindow : Window
         }
 
         ModConfiguration? modConfig;
-        try { modConfig = await GetModAsync(game); }
+        try { modConfig = serverConnected ? await GetModAsync(game) : null; }
         catch (Exception ex)
         {
             StatusText.Text = "Mod-Konfiguration nicht erreichbar: " + ex.Message;
