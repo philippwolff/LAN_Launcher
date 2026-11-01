@@ -1,0 +1,12 @@
+<Window x:Class="LanLauncher.Client.GameSettingsWindow" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" Title="Spieleinstellungen" Width="730" Height="340" MinWidth="620" MinHeight="310" WindowStartupLocation="CenterOwner">
+<Grid Margin="18">
+<Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+<TextBlock x:Name="GameTitle" FontWeight="Bold" FontSize="16" Margin="0,0,0,15"/>
+<TextBlock Grid.Row="1" Text="EXE-Datei für den Spielstart:" FontWeight="Bold" Margin="0,0,0,6"/>
+<Grid Grid.Row="2"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="130"/></Grid.ColumnDefinitions>
+<TextBox x:Name="ExecutablePathBox" VerticalContentAlignment="Center" Margin="0,0,10,0"/>
+<Button Grid.Column="1" Content="Durchsuchen..." Click="Browse_Click"/>
+</Grid>
+<StackPanel Grid.Row="3" Margin="0,14,0,0"><TextBlock x:Name="InstallFolderText" TextWrapping="Wrap" Margin="0,0,0,12"/><Button Content="Spiel-EXE automatisch suchen" Width="230" HorizontalAlignment="Left" Click="Detect_Click"/><TextBlock Text="Der ausgewählte Pfad wird nur für dieses Spiel gespeichert. Änderungen am Installationsordner sind weiterhin in den allgemeinen Einstellungen möglich." TextWrapping="Wrap" Margin="0,12,0,0" Foreground="#404040"/></StackPanel>
+<StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Right"><Button Content="Abbrechen" Width="110" Margin="0,0,10,0" IsCancel="True"/><Button Content="Speichern" Width="110" IsDefault="True" Click="Save_Click"/></StackPanel>
+</Grid></Window>
