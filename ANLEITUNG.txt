@@ -391,3 +391,18 @@ Ordner zeigt. Serverbibliothek pruefen hilft bei fehlenden Eintraegen.
 ACHTUNG: Vor dem Import ausreichend Speicherplatz fuer ZIP,
 Import und Sicherung einplanen. Import nur aus vertrauenswuerdigen
 LAN-Launcher-Exporten durchfuehren.
+
+SPIELSTART-HINWEISE (NUR ADMIN BEARBEITBAR):
+In der Spielebibliothek Spiel waehlen -> Spielaktionen ->
+"Starthinweis bearbeiten (Admin)". Mit gueltigem Admin-Schluessel
+kann ein Hinweistext von bis zu 2000 Zeichen eingegeben werden.
+Beispiel: "Das Spiel dauert beim ersten Start sehr lange."
+Der Text wird zentral im Server-Speicherordner in
+game-start-notices.json abgelegt. Ein leerer Text entfernt den
+Hinweis fuer dieses Spiel. Nach jedem erfolgreichen Start der
+Spiel-EXE ueber den LAN Launcher wird der Hinweis als Popup
+angezeigt. Spiele ohne Hinweis starten ohne Popup.
+Die Hinweise werden bei Serverbibliothek Im-/Export mitgesichert.
+API: GET /api/games/{id}/start-notice;
+PUT /api/admin/games/{id}/start-notice (nur Admin).
+Server und Client nach Pull origin neu starten/erstellen.
