@@ -429,7 +429,10 @@ public partial class MainWindow : Window
             }
             else
             {
-                var savedType = settings.InstallerTypes.GetValueOrDefault(game.Id) ?? "manual";
+                var detectedType = InstallerDetector.Detect(tempPackage, game.Name);
+                var savedType = detectedType != "manual"
+                    ? detectedType
+                    : settings.InstallerTypes.GetValueOrDefault(game.Id) ?? "manual";
                 var options = new InstallerOptionsWindow(game.Name, targetFolder, savedType) { Owner = this };
                 if (options.ShowDialog() == true)
                 {
