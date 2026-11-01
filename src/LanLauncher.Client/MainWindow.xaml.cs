@@ -119,12 +119,21 @@ public partial class MainWindow : Window
         }
     }
 
-    private void OpenGameActions(GameInfo game)
+    private async void OpenGameActions(GameInfo game)
     {
         settings.LastOpenedGameId = game.Id;
         try { settings.Save(); }
         catch (Exception ex) { StatusText.Text = "Spielauswahl konnte nicht gespeichert werden: " + ex.Message; }
         var popup = new GameActionsWindow(game) { Owner = this };
+        if (server is not null && !GameDisplayNameConverter.LocalOnlyIds.Contains(game.Id))
+        {
+            try
+            {
+                var tags = await http.GetFromJsonAsync<GameTags>(server + "/api/games/" + Uri.EscapeDataString(game.Id) + "/tags");
+                if (tags is not null) popup.ShowTags(tags);
+            }
+            catch (Exception) { /* Old server versions may not support tags yet. */ }
+        }
         if (popup.ShowDialog() != true) return;
         if (GameDisplayNameConverter.LocalOnlyIds.Contains(game.Id) &&
             (popup.SelectedAction == GameActionsWindow.GameAction.Install ||
