@@ -123,3 +123,10 @@ STANDARD-INSTALLATIONSORDNER (CLIENT):
 Bei neuen Einstellungen ist C:\LAN_Launcher_Server\Games der Standard-Installationsordner.
 Bereits gespeicherte Installationsordner bleiben unveraendert und koennen
 ueber Einstellungen angepasst werden.
+
+WINDOWS-98-DESKTOP-ICON FUER CLIENT:
+Das Client-Projekt verwendet automatisch das Icon
+src\LanLauncher.Client\Assets\LAN_Party_Client.ico, sobald die Datei dort liegt.
+Den Assets-Ordner ggf. erstellen und die bereitgestellte ICO-Datei hineinkopieren.
+Danach Client neu bauen/veroeffentlichen. Das EXE-Symbol und das Symbol einer
+neuen Desktop-Verknuepfung werden entsprechend gesetzt.
