@@ -89,11 +89,10 @@ public partial class MainWindow : Window
             updatingGames = true;
             try
             {
-                var sortedGames = LocalGameLibrary.Merge(games, settings);
-                GamesList.ItemsSource = sortedGames;
-                GamesList.SelectedItem = sortedGames.FirstOrDefault(g => g.Id == selectedGameId)
-                    ?? sortedGames.FirstOrDefault(g => g.Id == settings.LastOpenedGameId)
-                    ?? sortedGames.FirstOrDefault();
+                InitializeTagFilters();
+                allLibraryGames = LocalGameLibrary.Merge(games, settings);
+                await LoadLibraryTagsAsync(games);
+                ApplyLibraryTagFilters(selectedGameId ?? settings.LastOpenedGameId);
             }
             finally { updatingGames = false; }
             var gameNames = games.Concat(settings.KnownGames.Values)
