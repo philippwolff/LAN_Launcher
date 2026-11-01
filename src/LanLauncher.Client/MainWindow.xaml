@@ -13,7 +13,7 @@
 <Setter Property="Padding" Value="4,4"/>
 <Style.Triggers>
 <Trigger Property="IsSelected" Value="True">
-<Setter Property="Background" Value="#D6D6D6"/>
+<Setter Property="Background" Value="#D6E8FF"/>
 <Setter Property="Foreground" Value="Black"/>
 </Trigger>
 </Style.Triggers>
@@ -23,7 +23,7 @@
 <DataTemplate>
 <StackPanel Orientation="Horizontal">
 <Image Source="{Binding Converter={StaticResource GameIconConverter}}" Width="18" Height="18" Margin="0,0,7,0" Stretch="Uniform"/>
-<TextBlock Text="{Binding Name}" Foreground="Black" VerticalAlignment="Center"/>
+<TextBlock Text="{Binding Name}" Foreground="#000000" FontSize="14" FontWeight="Bold" VerticalAlignment="Center"/>
 </StackPanel>
 </DataTemplate>
 </ListBox.ItemTemplate>
