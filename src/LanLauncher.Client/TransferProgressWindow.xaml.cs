@@ -6,6 +6,7 @@ public partial class TransferProgressWindow : Window
 {
     private readonly CancellationTokenSource cancellation = new();
     private bool allowClose;
+    private bool finishing;
     public CancellationToken Cancellation => cancellation.Token;
     public TransferProgressWindow(string title)
     {
@@ -16,6 +17,7 @@ public partial class TransferProgressWindow : Window
     }
     public void Update(long bytes, long? total)
     {
+        if (finishing) return;
         if (total is > 0)
         {
             var percent = Math.Clamp(bytes * 100.0 / total.Value, 0, 100);
@@ -29,7 +31,7 @@ public partial class TransferProgressWindow : Window
             TransferDetails.Text = $"{bytes / 1048576.0:0.0} MB übertragen – Gesamtgröße unbekannt";
         }
     }
-    public void Finishing() { TransferBar.IsIndeterminate = true; TransferDetails.Text = "Übertragung abgeschlossen – Server verarbeitet Datei …"; CancelButton.IsEnabled = false; }
+    public void Finishing() { finishing = true; TransferBar.IsIndeterminate = true; TransferDetails.Text = "100 % übertragen – warte auf Bestätigung des Servers (bei großen ZIPs kann das dauern) …"; }
     public void CloseAfterTransfer() { allowClose = true; Close(); }
     public void CancelTransfer()
     {
