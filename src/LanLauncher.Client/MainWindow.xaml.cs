@@ -126,6 +126,15 @@ public partial class MainWindow : Window
         catch (Exception ex) { StatusText.Text = "Spielauswahl konnte nicht gespeichert werden: " + ex.Message; }
         var popup = new GameActionsWindow(game) { Owner = this };
         if (popup.ShowDialog() != true) return;
+        if (GameDisplayNameConverter.LocalOnlyIds.Contains(game.Id) &&
+            (popup.SelectedAction == GameActionsWindow.GameAction.Install ||
+             popup.SelectedAction == GameActionsWindow.GameAction.Download ||
+             popup.SelectedAction == GameActionsWindow.GameAction.Delete))
+        {
+            MessageBox.Show(this, "Das Spiel ist nur lokal verfügbar und nicht mehr auf dem Server.",
+                "Nur lokal verfügbar", MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
         switch (popup.SelectedAction)
         {
             case GameActionsWindow.GameAction.Start:
