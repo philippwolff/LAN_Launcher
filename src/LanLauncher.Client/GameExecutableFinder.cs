@@ -34,7 +34,7 @@ internal static class GameExecutableFinder
             Score = (x.Name == normalizedGame ? 100 : 0)
                 + (normalizedGame.Length >= 3 && x.Name.Contains(normalizedGame) ? 45 : 0)
                 + (x.Relative.Count(ch => ch == Path.DirectorySeparatorChar) == 0 ? 12 : 0)
-                + (x.Name is "0ad" or "pyrogenesis" && normalizedGame is "0ad" or "0adempiresascendant" ? 90 : 0)
+                + ((x.Name is "0ad" or "pyrogenesis") && (normalizedGame is "0ad" or "0adempiresascendant") ? 90 : 0)
                 - (x.Relative.Contains("redist", StringComparison.OrdinalIgnoreCase) ? 100 : 0)
         }).OrderByDescending(x => x.Score).ToArray();
 
