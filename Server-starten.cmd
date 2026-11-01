@@ -1,9 +1,14 @@
 @echo off
 setlocal
 cd /d "%~dp0"
-if not exist "Server\LanLauncher.Server.exe" (
-  echo Server-EXE nicht vorhanden.
-  echo Bitte zuerst Server-EXE-erstellen.cmd ausfuehren.
+if not exist "src\LanLauncher.Server\LanLauncher.Server.csproj" (
+  echo FEHLER: Serverprojekt nicht gefunden.
+  pause
+  exit /b 1
+)
+where dotnet >nul 2>nul
+if errorlevel 1 (
+  echo FEHLER: .NET SDK nicht gefunden. Bitte .NET 10 SDK installieren.
   pause
   exit /b 1
 )
@@ -18,9 +23,9 @@ if not defined LANLAUNCHER_AdminKey (
   exit /b 1
 )
 echo.
-echo Starte LAN Launcher Server auf Port 8080 ...
+echo Starte LAN Launcher Server auf Port 8080 ueber dotnet run ...
 echo Server beenden mit Strg+C.
-"Server\LanLauncher.Server.exe"
+dotnet run --project "src\LanLauncher.Server\LanLauncher.Server.csproj"
 echo.
 echo Server wurde beendet.
 pause
