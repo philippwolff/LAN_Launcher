@@ -8,12 +8,14 @@ var builder = WebApplication.CreateBuilder(args);
 builder.WebHost.UseUrls(builder.Configuration["ListenUrl"] ?? "http://0.0.0.0:8080");
 builder.Services.AddSingleton<GameCatalog>();
 builder.Services.AddSingleton<GameTagCatalog>();
+builder.Services.AddSingleton<ModCatalog>();
 builder.WebHost.ConfigureKestrel(options => options.Limits.MaxRequestBodySize = 20L * 1024 * 1024 * 1024);
 builder.Services.Configure<Microsoft.AspNetCore.Http.Features.FormOptions>(options => options.MultipartBodyLengthLimit = 20L * 1024 * 1024 * 1024);
 var app = builder.Build();
 var players = new ConcurrentDictionary<string, (PlayerInfo Player, DateTimeOffset Seen)>();
 var catalog = app.Services.GetRequiredService<GameCatalog>();
 var tagCatalog = app.Services.GetRequiredService<GameTagCatalog>();
+var modCatalog = app.Services.GetRequiredService<ModCatalog>();
 var adminKey = Environment.GetEnvironmentVariable("LANLAUNCHER_AdminKey") ?? builder.Configuration["AdminKey"];
 if (string.IsNullOrWhiteSpace(adminKey))
     Console.WriteLine("WARNUNG: Admin-Funktionen deaktiviert. AdminKey per Umgebungsvariable LANLAUNCHER_AdminKey setzen.");
@@ -37,6 +39,16 @@ app.MapPut("/api/admin/games/{id}/tags", (HttpRequest req, string id, GameTags t
     if (!catalog.List().Any(g => g.Id == id)) return Results.NotFound();
     try { tagCatalog.Set(id, tags); return Results.Ok(tagCatalog.Get(id)); }
     catch (ArgumentException e) { return Results.BadRequest(e.Message); }
+});
+app.MapGet("/api/games/{id}/mod", (string id) =>
+    catalog.List().Any(g => g.Id == id) ? Results.Ok(modCatalog.Get(id)) : Results.NotFound());
+app.MapPut("/api/admin/games/{id}/mod", (HttpRequest req, string id, ModConfiguration config) =>
+{
+    if (!IsAdmin(req)) return Results.Unauthorized();
+    if (id == config.BaseGameId || !catalog.List().Any(g => g.Id == id) ||
+        !catalog.List().Any(g => g.Id == config.BaseGameId)) return Results.BadRequest("Ungültiges Hauptspiel.");
+    try { modCatalog.Set(id, config); return Results.Ok(); }
+    catch (ArgumentException ex) { return Results.BadRequest(ex.Message); }
 });
 app.MapGet("/api/games/{id}/package", (string id) =>
 {
