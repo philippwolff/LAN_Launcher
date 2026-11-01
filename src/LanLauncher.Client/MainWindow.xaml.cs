@@ -448,7 +448,13 @@ public partial class MainWindow : Window
             using var response = await uploadClient.SendAsync(request, popup.Cancellation);
             popup.Finishing();
             StatusText.Text = response.IsSuccessStatusCode ? "Spiel hochgeladen." : "Upload fehlgeschlagen (HTTP " + (int)response.StatusCode + "): " + await response.Content.ReadAsStringAsync();
-            if (response.IsSuccessStatusCode) await RefreshAsync();
+            if (response.IsSuccessStatusCode)
+            {
+                var uploaded = await response.Content.ReadFromJsonAsync<GameInfo>();
+                if (uploaded is not null) await SaveTagsAsync(uploaded.Id, pendingTags);
+                pendingTags = new([], []);
+                await RefreshAsync();
+            }
         }
         catch (OperationCanceledException) { StatusText.Text = "Upload abgebrochen."; }
         catch (Exception ex) { StatusText.Text = "Upload fehlgeschlagen: " + ex.Message; }
