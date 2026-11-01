@@ -138,6 +138,19 @@ public partial class MainWindow : Window
             var gameFolder = GameExecutableFinder.GetInstallFolder(settings.InstallDirectory, game.Name);
             hasInstalledExe = GameExecutableFinder.FindBest(gameFolder, game.Name) is not null;
         }
+        ModConfiguration? modDetails = null;
+        try { modDetails = await GetModAsync(game); } catch (Exception) { }
+        if (modDetails is not null)
+        {
+            var baseFolder = FindBaseGameFolder(modDetails);
+            var modExe = baseFolder is null ? null : ResolveWithin(baseFolder, modDetails.LauncherExe);
+            hasInstalledExe = modExe is not null && File.Exists(modExe);
+            if (hasInstalledExe && !settings.InstalledExecutables.ContainsKey(game.Id))
+            {
+                settings.InstalledExecutables[game.Id] = modExe!;
+                settings.Save();
+            }
+        }
         popup.SetInstalled(hasInstalledExe);
         if (server is not null && !GameDisplayNameConverter.LocalOnlyIds.Contains(game.Id))
         {
@@ -182,7 +195,9 @@ public partial class MainWindow : Window
                 OpenGameSettings(game);
                 break;
             case GameActionsWindow.GameAction.Uninstall:
-                UninstallGame(game);
+                if (await GetModAsync(game) is not null)
+                    MessageBox.Show(this, "Der Mod teilt sich den Hauptspielordner. Eine automatische Deinstallation könnte Company of Heroes beschädigen. Bitte den offiziellen Mod-Deinstaller verwenden; der Launcher löscht keine gemeinsamen Dateien.", "Mod sicher deinstallieren", MessageBoxButton.OK, MessageBoxImage.Warning);
+                else UninstallGame(game);
                 break;
         }
     }
