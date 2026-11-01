@@ -192,3 +192,14 @@ Die Styles gelten fuer Hauptfenster, Spielaktionen, Einstellungen,
 EXE-Installation und Downloadfortschritt. Die echte Windows-Titelleiste
 bleibt vom Betriebssystem gesteuert. Nach Pull origin die
 Client-EXE-erstellen.cmd erneut ausfuehren.
+
+AUTOMATISCHE SPIEL-EXE-ERKENNUNG:
+Beim Klick auf Starten sucht der Client, sofern keine gueltige EXE
+gespeichert ist, im konfigurierten Installationsordner unter
+<Installationsordner>\<Spielname> und dessen Unterordnern nach
+passenden EXE-Dateien. Setup-, Uninstall-, Update- und Hilfs-EXEs
+werden nach typischen Namen ausgeschlossen. Eindeutige Treffer werden
+zur Bestaetigung angezeigt und nach Zustimmung gespeichert.
+Wenn keine eindeutige EXE gefunden wird, startet der manuelle
+Dateidialog bereits im Installationsordner des Spiels.
+Auch nach ZIP-Entpackung wird diese Erkennung angewendet.
