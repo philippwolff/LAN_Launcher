@@ -7,5 +7,5 @@
 <TextBlock Text="Installationsschritte (relative EXE-Pfade im ZIP, ein Schritt pro Zeile):" FontWeight="Bold" Margin="0,0,0,5"/>
 <TextBox x:Name="StepsBox" Height="125" AcceptsReturn="True" VerticalScrollBarVisibility="Auto" TextWrapping="NoWrap" Margin="0,0,0,12"/>
 <TextBlock Text="Die Schritte werden nacheinander gestartet. Der Mod wird in denselben Ordner wie das Hauptspiel installiert." TextWrapping="Wrap" Margin="0,0,0,10"/>
-<StackPanel Orientation="Horizontal" HorizontalAlignment="Right"><Button Content="Abbrechen" Width="110" Margin="0,0,10,0" IsCancel="True"/><Button Content="Speichern" Width="110" IsDefault="True" Click="Save_Click"/></StackPanel>
+<DockPanel LastChildFill="False"><Button Content="? Hilfe" Width="110" Height="30" HorizontalAlignment="Left" DockPanel.Dock="Left" Click="Help_Click"/><StackPanel Orientation="Horizontal" HorizontalAlignment="Right" DockPanel.Dock="Right"><Button Content="Abbrechen" Width="110" Margin="0,0,10,0" IsCancel="True"/><Button Content="Speichern" Width="110" IsDefault="True" Click="Save_Click"/></StackPanel></DockPanel>
 </StackPanel></Window>
