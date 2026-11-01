@@ -89,7 +89,7 @@ public partial class MainWindow : Window
             updatingGames = true;
             try
             {
-                var sortedGames = games.OrderBy(g => g.Name, StringComparer.CurrentCultureIgnoreCase).ToArray();
+                var sortedGames = LocalGameLibrary.Merge(games, settings);
                 GamesList.ItemsSource = sortedGames;
                 GamesList.SelectedItem = sortedGames.FirstOrDefault(g => g.Id == selectedGameId)
                     ?? sortedGames.FirstOrDefault(g => g.Id == settings.LastOpenedGameId)
