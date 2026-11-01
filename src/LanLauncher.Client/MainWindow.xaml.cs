@@ -172,6 +172,9 @@ public partial class MainWindow : Window
             case GameActionsWindow.GameAction.Delete:
                 DeleteGame_Click(GamesList, new RoutedEventArgs());
                 break;
+            case GameActionsWindow.GameAction.Mod:
+                EditMod(game);
+                break;
             case GameActionsWindow.GameAction.Tags:
                 EditTags(game);
                 break;
