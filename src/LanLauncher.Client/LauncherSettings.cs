@@ -7,8 +7,7 @@ public sealed class LauncherSettings
 {
     public string? LastOpenedGameId { get; set; }
     public Dictionary<string, string> InstalledExecutables { get; set; } = new();
-    public string InstallDirectory { get; set; } = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "LANLauncher", "Games");
+    public string InstallDirectory { get; set; } = @"C:\LAN_Launcher_Server\Games";
     public string DownloadDirectory { get; set; } = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads");
 
