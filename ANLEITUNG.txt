@@ -203,3 +203,13 @@ zur Bestaetigung angezeigt und nach Zustimmung gespeichert.
 Wenn keine eindeutige EXE gefunden wird, startet der manuelle
 Dateidialog bereits im Installationsordner des Spiels.
 Auch nach ZIP-Entpackung wird diese Erkennung angewendet.
+
+SPIELEINSTELLUNGEN IM SPIELAKTIONEN-FENSTER:
+Im Fenster Spielaktionen gibt es jetzt die Schaltflaeche "Einstellungen".
+Dort kann die Start-EXE fuer das ausgewaehlte Spiel angesehen und
+ueber "Durchsuchen..." geaendert werden. Die Dateiauswahl beginnt
+im aktuellen EXE-Ordner oder im Installationsordner des Spiels.
+"Spiel-EXE automatisch suchen" prueft den Installationsordner erneut.
+Mit "Speichern" wird der EXE-Pfad dauerhaft nur fuer dieses Spiel
+hinterlegt. Ein leeres Feld entfernt die Zuordnung.
+Nach Fetch origin / Pull origin den Client neu erstellen.
