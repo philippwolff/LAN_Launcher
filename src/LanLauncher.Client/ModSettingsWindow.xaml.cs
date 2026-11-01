@@ -19,6 +19,11 @@ public partial class ModSettingsWindow : Window
         }
     }
 
+    private void Help_Click(object sender, RoutedEventArgs e)
+    {
+        new ModHelpWindow { Owner = this }.ShowDialog();
+    }
+
     private void Save_Click(object sender, RoutedEventArgs e)
     {
         if (BaseGameBox.SelectedItem is not GameInfo game ||
