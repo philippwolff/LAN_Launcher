@@ -183,3 +183,12 @@ keine Kennung erkannt wird. Bei unbekannten Installern bleibt die
 manuelle Auswahl (oder die zuvor gespeicherte Auswahl) erhalten.
 Die Erkennung ist nicht fuer jeden Installer garantiert; Zielpfad im
 Assistenten weiterhin kontrollieren.
+
+WINDOWS-98-DESIGN:
+Der Client verwendet jetzt eine einheitliche, Windows-98-inspirierte
+Oberflaeche: grauer Hintergrund, Tahoma-Schrift, kantige Schaltflaechen,
+klassische Eingabefelder und blaue Titelflaeche im Hauptfenster.
+Die Styles gelten fuer Hauptfenster, Spielaktionen, Einstellungen,
+EXE-Installation und Downloadfortschritt. Die echte Windows-Titelleiste
+bleibt vom Betriebssystem gesteuert. Nach Pull origin die
+Client-EXE-erstellen.cmd erneut ausfuehren.
