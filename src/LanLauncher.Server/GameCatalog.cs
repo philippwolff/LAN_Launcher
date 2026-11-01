@@ -10,6 +10,8 @@ public sealed class GameCatalog
     private readonly string metadataPath;
     private readonly object gate = new();
     private readonly Dictionary<string, GameInfo> games;
+    private readonly Dictionary<string, string> launchPaths;
+    private readonly string launchPathsFile;
     public string Inbox { get; }
 
     public GameCatalog(IConfiguration configuration)
@@ -19,6 +21,8 @@ public sealed class GameCatalog
         Directory.CreateDirectory(Inbox);
         Directory.CreateDirectory(Path.Combine(root, "Packages"));
         metadataPath = Path.Combine(root, "games.json");
+        launchPathsFile = Path.Combine(root, "launch-paths.json");
+        launchPaths = File.Exists(launchPathsFile) ? JsonSerializer.Deserialize<Dictionary<string, string>>(File.ReadAllText(launchPathsFile)) ?? new() : new();
         games = File.Exists(metadataPath)
             ? JsonSerializer.Deserialize<Dictionary<string, GameInfo>>(File.ReadAllText(metadataPath)) ?? new()
             : new();
@@ -76,6 +80,27 @@ public sealed class GameCatalog
             if (File.Exists(path)) return (path, id + ext);
         }
         return null;
+    }
+
+    public string? GetLaunchPath(string id)
+    {
+        lock (gate) return games.ContainsKey(id) && launchPaths.TryGetValue(id, out var path) ? path : null;
+    }
+
+    public void SetLaunchPath(string id, string relativePath)
+    {
+        if (string.IsNullOrWhiteSpace(relativePath) || Path.IsPathRooted(relativePath) ||
+            relativePath.Split(new[] { '/', '\\\\' }).Any(x => x is ".." or "." or "") ||
+            !relativePath.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
+            throw new ArgumentException("Nur relative EXE-Pfade innerhalb des Spielordners erlaubt.");
+        lock (gate)
+        {
+            if (!games.ContainsKey(id)) throw new KeyNotFoundException("Spiel nicht gefunden.");
+            launchPaths[id] = relativePath.Replace('/', '\\\\');
+            var tmp = launchPathsFile + ".tmp";
+            File.WriteAllText(tmp, JsonSerializer.Serialize(launchPaths));
+            File.Move(tmp, launchPathsFile, true);
+        }
     }
 
     public bool Remove(string id)
