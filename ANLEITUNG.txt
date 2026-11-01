@@ -110,3 +110,11 @@ PFLEGE DIESER ANLEITUNG
 Diese Datei liegt im GitHub-Repository und wird bei künftigen Änderungen
 am Launcher von uns mit aktualisiert. Nach Änderungen über GitHub Desktop
 erneut "Fetch origin" / "Pull origin" ausführen.
+
+HINWEIS SMART APP CONTROL (WINDOWS):
+Die separat veroeffentlichte Server-EXE kann durch Smart App Control blockiert werden.
+Server-starten.cmd startet daher das Serverprojekt mit dem .NET 10 SDK ueber
+'dotnet run --project src\LanLauncher.Server\LanLauncher.Server.csproj'.
+Dafuer muss das .NET 10 SDK installiert sein. Das Skript fragt den Admin-Schluessel
+ab und setzt LANLAUNCHER_AdminKey nur fuer diesen Startvorgang.
+Smart App Control muss nicht deaktiviert werden.
