@@ -140,6 +140,28 @@ public partial class MainWindow : Window
             case GameActionsWindow.GameAction.Delete:
                 DeleteGame_Click(GamesList, new RoutedEventArgs());
                 break;
+            case GameActionsWindow.GameAction.Settings:
+                OpenGameSettings(game);
+                break;
+        }
+    }
+
+    private void OpenGameSettings(GameInfo game)
+    {
+        var window = new GameSettingsWindow(game, settings) { Owner = this };
+        if (window.ShowDialog() != true) return;
+        if (string.IsNullOrWhiteSpace(window.ExecutablePath))
+            settings.InstalledExecutables.Remove(game.Id);
+        else
+            settings.InstalledExecutables[game.Id] = window.ExecutablePath;
+        try
+        {
+            settings.Save();
+            StatusText.Text = "Spieleinstellungen gespeichert: " + game.Name;
+        }
+        catch (Exception ex)
+        {
+            StatusText.Text = "Spieleinstellungen konnten nicht gespeichert werden: " + ex.Message;
         }
     }
 
