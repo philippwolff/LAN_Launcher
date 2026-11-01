@@ -143,6 +143,106 @@ public partial class MainWindow : Window
             case GameActionsWindow.GameAction.Settings:
                 OpenGameSettings(game);
                 break;
+            case GameActionsWindow.GameAction.Uninstall:
+                UninstallGame(game);
+                break;
+        }
+    }
+
+    private void UninstallGame(GameInfo game)
+    {
+        var folder = GameExecutableFinder.GetInstallFolder(settings.InstallDirectory, game.Name);
+        settings.InstalledExecutables.TryGetValue(game.Id, out var executable);
+        var existingExe = !string.IsNullOrWhiteSpace(executable) && File.Exists(executable)
+            ? executable : null;
+        var root = Directory.Exists(folder) ? folder
+            : existingExe is not null ? Path.GetDirectoryName(existingExe)! : folder;
+
+        // Prefer the vendor's own uninstaller for EXE-based installations.
+        var uninstallers = new List<string>();
+        if (Directory.Exists(root))
+        {
+            try
+            {
+                uninstallers.AddRange(Directory.EnumerateFiles(root, "*.exe",
+                    SearchOption.TopDirectoryOnly).Where(file =>
+                    {
+                        var name = Path.GetFileName(file);
+                        return name.StartsWith("unins", StringComparison.OrdinalIgnoreCase) ||
+                            name.StartsWith("uninstall", StringComparison.OrdinalIgnoreCase);
+                    }));
+            }
+            catch (UnauthorizedAccessException) { }
+            catch (IOException) { }
+        }
+        if (uninstallers.Count > 0)
+        {
+            var uninstaller = uninstallers.OrderBy(x => x).First();
+            if (MessageBox.Show(this,
+                "Das Deinstallationsprogramm des Spiels starten?\n\n" + uninstaller +
+                "\n\nDer Deinstallationsassistent entscheidet, welche Dateien entfernt werden.",
+                "Spiel deinstallieren", MessageBoxButton.YesNo, MessageBoxImage.Warning,
+                MessageBoxResult.No) != MessageBoxResult.Yes) return;
+            try
+            {
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(uninstaller)
+                {
+                    UseShellExecute = true,
+                    WorkingDirectory = Path.GetDirectoryName(uninstaller)!
+                });
+                StatusText.Text = "Deinstallationsassistent gestartet: " + game.Name;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(this, "Deinstallationsprogramm konnte nicht gestartet werden:\n" + ex.Message,
+                    "Fehler", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+            return;
+        }
+
+        // Never delete a game installed outside the launcher's dedicated folder.
+        var expected = Path.GetFullPath(folder).TrimEnd(Path.DirectorySeparatorChar);
+        var installRoot = Path.GetFullPath(settings.InstallDirectory)
+            .TrimEnd(Path.DirectorySeparatorChar);
+        if (!Directory.Exists(folder) ||
+            !expected.StartsWith(installRoot + Path.DirectorySeparatorChar,
+                StringComparison.OrdinalIgnoreCase))
+        {
+            MessageBox.Show(this,
+                "Kein vom Launcher verwalteter Installationsordner gefunden.\n\n" +
+                "Bitte das Spiel über Windows Einstellungen > Apps > Installierte Apps deinstallieren.\n" +
+                "Es wurden keine Dateien gelöscht.",
+                "Spiel deinstallieren", MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+
+        if (settings.InstallerTypes.ContainsKey(game.Id))
+        {
+            MessageBox.Show(this,
+                "Für dieses Spiel wurde ein EXE-Installer verwendet, aber kein Deinstallationsprogramm gefunden.\n\n" +
+                "Bitte unter Windows Einstellungen > Apps > Installierte Apps deinstallieren.\n" +
+                "Der Launcher löscht hier keine Dateien, um die Installation nicht zu beschädigen.",
+                "Deinstallationsprogramm fehlt", MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+
+        if (MessageBox.Show(this,
+            "Den lokal installierten Spielordner vollständig löschen?\n\n" + folder +
+            "\n\nDies kann auch Spielstände und eigene Dateien im Ordner löschen. " +
+            "Das Spielpaket auf dem Server bleibt erhalten.",
+            "Spiel deinstallieren", MessageBoxButton.YesNo, MessageBoxImage.Warning,
+            MessageBoxResult.No) != MessageBoxResult.Yes) return;
+        try
+        {
+            Directory.Delete(folder, recursive: true);
+            settings.InstalledExecutables.Remove(game.Id);
+            settings.Save();
+            StatusText.Text = "Spiel lokal deinstalliert: " + game.Name;
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(this, "Spielordner konnte nicht gelöscht werden:\n" + ex.Message,
+                "Deinstallation fehlgeschlagen", MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
 
