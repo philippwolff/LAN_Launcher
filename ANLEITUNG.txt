@@ -273,3 +273,19 @@ Starten, Spieleinstellungen und lokale Deinstallation bleiben moeglich.
 Serveraktionen wie Herunterladen und vom Server loeschen werden
 fuer diese Eintraege abgewiesen. Eine Neuinstallation des Clients
 ohne vorhandene Einstellungen kann diese Historie nicht rekonstruieren.
+
+SPIEL-TAGS (NUR ADMIN):
+Der Server speichert Tags je Spiel dauerhaft in game-tags.json
+im konfigurierten StoragePath. Spieleranzahlen 1 bis 16 koennen
+einzeln und mehrfach angekreuzt werden; dazu gibt es eine
+umfangreiche Genre-Auswahl mit Mehrfachauswahl.
+Beim Hinzufuegen: Im Admin-Bereich zuerst "Tags festlegen"
+auswaehlen, danach ZIP/EXE hochladen oder Inbox importieren.
+Die Auswahl wird nach erfolgreicher Anlage auf dem Server gespeichert.
+Bei bestehenden Spielen: Spielaktionen -> Tags bearbeiten (Admin).
+Ein gueltiger Admin-Schluessel ist erforderlich; der Server
+prueft die Berechtigung erneut beim Speichern.
+Im Spielaktionen-Fenster werden vorhandene Tags angezeigt.
+API: GET /api/games/{id}/tags (lesen),
+PUT /api/admin/games/{id}/tags (nur mit X-Admin-Key).
+Server und Client muessen nach Pull origin neu gebaut werden.
