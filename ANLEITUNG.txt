@@ -173,3 +173,13 @@ Arbeitsverzeichnis ist derselbe Ordner; das EXE-Icon wird verwendet.
 Eine bestehende gleichnamige Verknuepfung wird aktualisiert.
 Falls das Anlegen fehlschlaegt, bleibt die EXE nutzbar und das Skript
 zeigt eine Warnung an. Keine Administratorrechte erforderlich.
+
+AUTOMATISCHE INSTALLER-ERKENNUNG:
+Nach dem EXE-Download prueft der Client Versionsinformationen und typische
+Kennungen im Installationsprogramm (NSIS / Inno Setup). Ein erkannter Typ
+wird im Installationsdialog automatisch vorausgewaehlt und kann manuell
+geaendert werden. Fuer 0ad / 0 A.D. wird NSIS vorausgewaehlt, falls
+keine Kennung erkannt wird. Bei unbekannten Installern bleibt die
+manuelle Auswahl (oder die zuvor gespeicherte Auswahl) erhalten.
+Die Erkennung ist nicht fuer jeden Installer garantiert; Zielpfad im
+Assistenten weiterhin kontrollieren.
