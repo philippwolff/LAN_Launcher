@@ -424,3 +424,17 @@ Erklaerung mit Beispielen zu Hauptspiel, Start-EXE,
 ZIP-Ordnerstruktur, relativen Installer-Pfaden, Patch-
 Reihenfolge, Installationsablauf und sicherer Deinstallation.
 Die Hilfe laesst sich schliessen, ohne Eingaben zu verlieren.
+
+SPIELEBIBLIOTHEK NACH TAGS FILTERN:
+Oberhalb der Spieleliste befinden sich zwei Filter-Dropdowns:
+"Alle Spielerzahlen" (1 bis 16 Spieler) und "Alle Genres"
+(alle in der Tag-Verwaltung angebotenen Genres).
+Beide Filter koennen kombiniert werden. Ein Spiel erscheint
+dann nur, wenn seine hinterlegten Tags BEIDE Bedingungen
+erfuellen. Spiele ohne passende Tags werden bei aktivem Filter
+ausgeblendet. Ohne Filter sind weiterhin alle Spiele sichtbar,
+einschliesslich lokal verfuegbarer Spiele.
+"Zuruecksetzen" zeigt wieder die gesamte Bibliothek.
+Die Tags werden beim Aktualisieren der Spieleliste vom Server
+geladen. Filter stehen allen Spielern ohne Admin-Schluessel
+zur Verfuegung; nur das Bearbeiten der Tags benoetigt Admin-Rechte.
