@@ -298,3 +298,11 @@ Ausgewaehlte Eintraege werden weiterhin hellblau markiert.
 Die Spielnamen bleiben in allen Faellen schwarz und gut lesbar.
 Nach Installation und erneutem Laden der Spieleliste wechselt die
 Darstellung automatisch. Client nach Pull origin neu erstellen.
+
+SPIELAKTIONEN: INSTALLATIONSSTATUS:
+Wenn fuer ein Spiel keine lokal vorhandene Start-EXE hinterlegt ist
+und auch im verwalteten Installationsordner keine passende Spiel-EXE
+erkannt wird, sind die Schaltflaechen "Starten" und
+"Spiel deinstallieren" ausgegraut und nicht anklickbar.
+Bei vorhandener Installation bleiben beide Schaltflaechen aktiv.
+Die Pruefung erfolgt beim Oeffnen des Spielaktionen-Fensters.
