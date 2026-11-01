@@ -14,6 +14,12 @@ public partial class GameActionsWindow : Window
         GameTitle.Text = game.Name + " (Version " + game.Version + ")";
     }
 
+    public void SetInstalled(bool installed)
+    {
+        StartButton.IsEnabled = installed;
+        UninstallButton.IsEnabled = installed;
+    }
+
     public void ShowTags(GameTags tags)
     {
         TagsText.Text = "Spieler: " + (tags.PlayerCounts.Length == 0 ? "keine Angabe" : string.Join(", ", tags.PlayerCounts)) +
