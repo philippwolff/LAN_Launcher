@@ -36,7 +36,14 @@ public partial class SettingsWindow : Window
                 throw new ArgumentException("Beide Ordner müssen angegeben werden.");
             Directory.CreateDirectory(install);
             Directory.CreateDirectory(download);
-            var updated = new LauncherSettings { InstallDirectory = install, DownloadDirectory = download };
+            var updated = new LauncherSettings
+            {
+                InstallDirectory = install,
+                DownloadDirectory = download,
+                LastOpenedGameId = Settings.LastOpenedGameId,
+                InstalledExecutables = new Dictionary<string, string>(Settings.InstalledExecutables),
+                InstallerTypes = new Dictionary<string, string>(Settings.InstallerTypes)
+            };
             updated.Save();
             Settings = updated;
             DialogResult = true;
