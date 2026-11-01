@@ -5,6 +5,7 @@ namespace LanLauncher.Client;
 
 public sealed class LauncherSettings
 {
+    public Dictionary<string, string> DownloadedPackages { get; set; } = new();
     public Dictionary<string, string> InstallerTypes { get; set; } = new();
     public Dictionary<string, LanLauncher.Shared.GameInfo> KnownGames { get; set; } = new();
     public string? LastOpenedGameId { get; set; }
