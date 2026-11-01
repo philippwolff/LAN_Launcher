@@ -141,3 +141,15 @@ Der Typ wird je Spiel gespeichert. Bitte immer den im Installer angezeigten
 Zielordner kontrollieren: Nicht jeder Installer unterstuetzt diese Parameter.
 Der heruntergeladene EXE-Installer bleibt im Downloadordner, nicht im
 eigentlichen Spielinstallationsordner. ZIP-Dateien werden direkt entpackt.
+
+CLIENT-EXE IM PROJEKTORDNER ERSTELLEN:
+Nach Fetch origin / Pull origin im Ordner src\LanLauncher.Client die Datei
+Client-EXE-erstellen.cmd per Doppelklick starten. Sie erstellt einen
+Windows-x64-Single-File-Release-Build und kopiert die EXE als
+src\LanLauncher.Client\LAN_Party_Client.exe in den gewuenschten Ordner.
+Anschliessend LAN_Party_Client.exe per Doppelklick starten.
+Voraussetzung: .NET 10 SDK. Das Icon wird eingebettet, wenn
+Assets\LAN_Party_Client.ico existiert. Smart App Control kann selbst
+erstellte, nicht signierte EXE-Dateien weiterhin blockieren; dann
+stattdessen 'dotnet run --project src\LanLauncher.Client' verwenden.
+Die EXE ist ein lokales Build-Ergebnis und wird nicht auf GitHub gespeichert.
