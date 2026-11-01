@@ -5,7 +5,7 @@ namespace LanLauncher.Client;
 
 public partial class GameActionsWindow : Window
 {
-    public enum GameAction { None, Start, Install, Download, Delete, Settings, Uninstall, Tags, Mod }
+    public enum GameAction { None, Start, Install, Download, Delete, Settings, Uninstall, Tags, Mod, Notice }
     public GameAction SelectedAction { get; private set; }
 
     public GameActionsWindow(GameInfo game)
@@ -37,6 +37,7 @@ public partial class GameActionsWindow : Window
     private void Delete_Click(object sender, RoutedEventArgs e) => Choose(GameAction.Delete);
     private void Uninstall_Click(object sender, RoutedEventArgs e) => Choose(GameAction.Uninstall);
     private void Mod_Click(object sender, RoutedEventArgs e) => Choose(GameAction.Mod);
+    private void Notice_Click(object sender, RoutedEventArgs e) => Choose(GameAction.Notice);
     private void Tags_Click(object sender, RoutedEventArgs e) => Choose(GameAction.Tags);
     private void Settings_Click(object sender, RoutedEventArgs e) => Choose(GameAction.Settings);
     private void Close_Click(object sender, RoutedEventArgs e) => DialogResult = false;
