@@ -416,3 +416,11 @@ Katalogeintrag anlegen. Das Upload-Fenster zeigt deshalb jetzt
 Erst nach der Serverantwort wird das Fenster geschlossen.
 Bei grossen Dateien nicht vorschnell abbrechen; auf freien
 Speicherplatz im Server-Speicherordner und Windows-Temp achten.
+
+HILFE ZUR MOD-ZUORDNUNG:
+Im Fenster "Mod zuordnen (Admin)" gibt es links unten
+den Button "? Hilfe". Dieser oeffnet eine ausfuehrliche
+Erklaerung mit Beispielen zu Hauptspiel, Start-EXE,
+ZIP-Ordnerstruktur, relativen Installer-Pfaden, Patch-
+Reihenfolge, Installationsablauf und sicherer Deinstallation.
+Die Hilfe laesst sich schliessen, ohne Eingaben zu verlieren.
