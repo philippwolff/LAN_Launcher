@@ -213,3 +213,12 @@ im aktuellen EXE-Ordner oder im Installationsordner des Spiels.
 Mit "Speichern" wird der EXE-Pfad dauerhaft nur fuer dieses Spiel
 hinterlegt. Ein leeres Feld entfernt die Zuordnung.
 Nach Fetch origin / Pull origin den Client neu erstellen.
+
+SPIELEBIBLIOTHEK: SCHWARZE SCHRIFT UND SPIEL-ICONS
+Die Spielnamen in der Bibliothek werden schwarz dargestellt, auch
+wenn ein Eintrag ausgewaehlt ist. Links neben dem Namen zeigt der
+Client nach Moeglichkeit das kleine Windows-Icon der hinterlegten
+Spiel-EXE an. Ist noch keine EXE hinterlegt, wird im
+Spielinstallationsordner nach einer eindeutigen EXE gesucht.
+Ohne gefundene EXE bleibt das Icon leer.
+Nach Fetch origin / Pull origin Client-EXE-erstellen.cmd erneut starten.
