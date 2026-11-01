@@ -151,6 +151,7 @@ public partial class MainWindow : Window
             }
         }
         popup.SetInstalled(hasInstalledExe);
+        popup.SetDownloaded(TryGetDownloadedPackage(game, out _));
         if (server is not null && !GameDisplayNameConverter.LocalOnlyIds.Contains(game.Id))
         {
             try
@@ -163,6 +164,7 @@ public partial class MainWindow : Window
         if (popup.ShowDialog() != true) return;
         if (GameDisplayNameConverter.LocalOnlyIds.Contains(game.Id) &&
             (popup.SelectedAction == GameActionsWindow.GameAction.Install ||
+             popup.SelectedAction == GameActionsWindow.GameAction.LocalInstall ||
              popup.SelectedAction == GameActionsWindow.GameAction.Download ||
              popup.SelectedAction == GameActionsWindow.GameAction.Delete))
         {
@@ -177,6 +179,9 @@ public partial class MainWindow : Window
                 break;
             case GameActionsWindow.GameAction.Install:
                 Install_Click(GamesList, new RoutedEventArgs());
+                break;
+            case GameActionsWindow.GameAction.LocalInstall:
+                InstallLocalPackage(game);
                 break;
             case GameActionsWindow.GameAction.Download:
                 Download_Click(GamesList, new RoutedEventArgs());
@@ -544,8 +549,23 @@ public partial class MainWindow : Window
     }
 
 
+    private string? requestedLocalPackage;
+
+    private void InstallLocalPackage(GameInfo game)
+    {
+        if (!TryGetDownloadedPackage(game, out var package))
+        {
+            MessageBox.Show(this, "Kein vollständig heruntergeladenes Paket gefunden.", "Installieren");
+            return;
+        }
+        requestedLocalPackage = package;
+        Install_Click(GamesList, new RoutedEventArgs());
+    }
+
     private async void Install_Click(object sender, RoutedEventArgs e)
     {
+        var localPackage = requestedLocalPackage;
+        requestedLocalPackage = null;
         if (server is null || GamesList.SelectedItem is not GameInfo game)
         {
             StatusText.Text = "Bitte ein Spiel auswählen.";
@@ -576,36 +596,50 @@ public partial class MainWindow : Window
         var tempPackage = Path.Combine(settings.DownloadDirectory, "LANLauncher-" + Guid.NewGuid().ToString("N") + ".part");
         try
         {
-            using var downloadClient = new HttpClient { Timeout = Timeout.InfiniteTimeSpan };
-            using var response = await downloadClient.GetAsync(
-                server + "/api/games/" + Uri.EscapeDataString(game.Id) + "/package",
-                HttpCompletionOption.ResponseHeadersRead, popup.Cancellation);
-            response.EnsureSuccessStatusCode();
-
-            var fileName = response.Content.Headers.ContentDisposition?.FileNameStar
-                ?? response.Content.Headers.ContentDisposition?.FileName?.Trim('"')
-                ?? "";
-            var extension = Path.GetExtension(fileName).ToLowerInvariant();
-            if (extension is not (".zip" or ".exe"))
-                throw new InvalidDataException("Der Server hat keinen gültigen ZIP-/EXE-Dateityp übermittelt.");
-
-            await using (var input = await response.Content.ReadAsStreamAsync(popup.Cancellation))
-            await using (var output = new FileStream(tempPackage, FileMode.CreateNew, FileAccess.Write,
-                FileShare.None, 128 * 1024, useAsync: true))
+            string fileName;
+            string extension;
+            if (localPackage is not null)
             {
-                var total = response.Content.Headers.ContentLength;
-                var buffer = new byte[128 * 1024];
-                long received = 0;
-                int count;
-                while ((count = await input.ReadAsync(buffer, popup.Cancellation)) > 0)
+                if (!File.Exists(localPackage) || Path.GetExtension(localPackage).ToLowerInvariant() is not (".zip" or ".exe"))
+                    throw new FileNotFoundException("Das heruntergeladene ZIP-/EXE-Paket ist nicht mehr vorhanden.", localPackage);
+                fileName = Path.GetFileName(localPackage);
+                extension = Path.GetExtension(fileName).ToLowerInvariant();
+                await Task.Run(() => File.Copy(localPackage, tempPackage, overwrite: false), popup.Cancellation);
+            }
+            else
+            {
+                using var downloadClient = new HttpClient { Timeout = Timeout.InfiniteTimeSpan };
+                using var response = await downloadClient.GetAsync(
+                    server + "/api/games/" + Uri.EscapeDataString(game.Id) + "/package",
+                    HttpCompletionOption.ResponseHeadersRead, popup.Cancellation);
+                response.EnsureSuccessStatusCode();
+    
+                fileName = response.Content.Headers.ContentDisposition?.FileNameStar
+                    ?? response.Content.Headers.ContentDisposition?.FileName?.Trim('"')
+                    ?? "";
+                extension = Path.GetExtension(fileName).ToLowerInvariant();
+                if (extension is not (".zip" or ".exe"))
+                    throw new InvalidDataException("Der Server hat keinen gültigen ZIP-/EXE-Dateityp übermittelt.");
+    
+                await using (var input = await response.Content.ReadAsStreamAsync(popup.Cancellation))
+                await using (var output = new FileStream(tempPackage, FileMode.CreateNew, FileAccess.Write,
+                    FileShare.None, 128 * 1024, useAsync: true))
                 {
-                    await output.WriteAsync(buffer.AsMemory(0, count), popup.Cancellation);
-                    received += count;
-                    popup.Update(received, total);
+                    var total = response.Content.Headers.ContentLength;
+                    var buffer = new byte[128 * 1024];
+                    long received = 0;
+                    int count;
+                    while ((count = await input.ReadAsync(buffer, popup.Cancellation)) > 0)
+                    {
+                        await output.WriteAsync(buffer.AsMemory(0, count), popup.Cancellation);
+                        received += count;
+                        popup.Update(received, total);
+                    }
+                    await output.FlushAsync(popup.Cancellation);
+                    if (total.HasValue && received != total.Value)
+                        throw new IOException("Der Download ist unvollständig.");
                 }
-                await output.FlushAsync(popup.Cancellation);
-                if (total.HasValue && received != total.Value)
-                    throw new IOException("Der Download ist unvollständig.");
+    
             }
             popup.Cancellation.ThrowIfCancellationRequested();
             popup.Finishing();
@@ -781,6 +815,8 @@ public partial class MainWindow : Window
             popup.Cancellation.ThrowIfCancellationRequested();
             File.Move(temporaryPath, outputPath, true);
             completed = true;
+            settings.DownloadedPackages[game.Id] = outputPath;
+            settings.Save();
             StatusText.Text = "Paket gespeichert: " + outputPath;
         }
         catch (OperationCanceledException) { StatusText.Text = "Download abgebrochen."; }
