@@ -130,3 +130,14 @@ src\LanLauncher.Client\Assets\LAN_Party_Client.ico, sobald die Datei dort liegt.
 Den Assets-Ordner ggf. erstellen und die bereitgestellte ICO-Datei hineinkopieren.
 Danach Client neu bauen/veroeffentlichen. Das EXE-Symbol und das Symbol einer
 neuen Desktop-Verknuepfung werden entsprechend gesetzt.
+
+EXE-INSTALLATION MIT ZIELORDNER:
+Vor dem Start einer heruntergeladenen EXE erscheint ein Dialog mit dem
+gewuenschten Installationsordner und der Auswahl des Installer-Typs:
+- Unbekannt / manuell: keine Zielordner-Parameter; im Assistenten selbst waehlen.
+- NSIS: /D=Zielordner (als letztes Argument, ohne Anfuehrungszeichen).
+- Inno Setup: /DIR=Zielordner.
+Der Typ wird je Spiel gespeichert. Bitte immer den im Installer angezeigten
+Zielordner kontrollieren: Nicht jeder Installer unterstuetzt diese Parameter.
+Der heruntergeladene EXE-Installer bleibt im Downloadordner, nicht im
+eigentlichen Spielinstallationsordner. ZIP-Dateien werden direkt entpackt.
