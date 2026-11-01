@@ -222,3 +222,24 @@ Spiel-EXE an. Ist noch keine EXE hinterlegt, wird im
 Spielinstallationsordner nach einer eindeutigen EXE gesucht.
 Ohne gefundene EXE bleibt das Icon leer.
 Nach Fetch origin / Pull origin Client-EXE-erstellen.cmd erneut starten.
+
+SERVERSEITIGER SPIEL-EXE-PFAD:
+Server speichert relative Start-EXE-Pfade je Spiel dauerhaft in
+launch-paths.json unter seinem StoragePath (neben games.json).
+API GET /api/games/{id}/launch-path liefert die Vorgabe.
+Nur Admins duerfen ueber PUT /api/admin/games/{id}/launch-path
+mit X-Admin-Key die Vorgabe setzen.
+Im Client unter Spielaktionen / Einstellungen eine EXE im
+Spielinstallationsordner waehlen und mit Admin-Schluessel speichern.
+Andere Clients pruefen beim Start zuerst die Server-Vorgabe im
+jeweils eigenen Spielinstallationsordner. Ist sie dort nicht vorhanden,
+greift die lokale automatische Suche oder manuelle Auswahl.
+Individuell bereits gespeicherte EXE-Pfade haben Vorrang.
+Die serverseitige Vorgabe ist nur fuer gleiche Spielordner-Strukturen
+geeignet, nicht fuer absolute Pfade auf unterschiedlichen PCs.
+
+SERVER-STARTFEHLER MSB3027 / MSB3021:
+Wenn auf Port 8080 bereits ein LAN Launcher Server ueber /api/health
+antwortet, meldet Server-starten.cmd jetzt den laufenden Server und
+versucht keinen zweiten dotnet-run-Build. Bei einem haengenden
+Altprozess den laufenden Server zuerst sauber mit Strg+C beenden.
