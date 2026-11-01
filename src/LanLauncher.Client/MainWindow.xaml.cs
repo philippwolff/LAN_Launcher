@@ -146,7 +146,7 @@ public partial class MainWindow : Window
         }
     }
 
-    private void OpenGameSettings(GameInfo game)
+    private async void OpenGameSettings(GameInfo game)
     {
         var window = new GameSettingsWindow(game, settings) { Owner = this };
         if (window.ShowDialog() != true) return;
@@ -157,6 +157,7 @@ public partial class MainWindow : Window
         try
         {
             settings.Save();
+            await UploadLaunchPathAsync(game, window.ExecutablePath);
             StatusText.Text = "Spieleinstellungen gespeichert: " + game.Name;
         }
         catch (Exception ex)
@@ -165,12 +166,13 @@ public partial class MainWindow : Window
         }
     }
 
-    private void StartGame(GameInfo game)
+    private async void StartGame(GameInfo game)
     {
         if (!settings.InstalledExecutables.TryGetValue(game.Id, out var executable) || !File.Exists(executable))
         {
             var installFolder = GameExecutableFinder.GetInstallFolder(settings.InstallDirectory, game.Name);
-            var detected = GameExecutableFinder.FindBest(installFolder, game.Name);
+            var detected = await GetServerLaunchExecutableAsync(game, installFolder)
+                ?? GameExecutableFinder.FindBest(installFolder, game.Name);
             if (detected is not null)
             {
                 var confirmation = MessageBox.Show(this,
@@ -215,6 +217,44 @@ public partial class MainWindow : Window
             StatusText.Text = "Spiel gestartet: " + game.Name;
         }
         catch (Exception ex) { StatusText.Text = "Spielstart fehlgeschlagen: " + ex.Message; }
+    }
+
+    private sealed record ServerLaunchPath(string Path);
+
+    private async Task<string?> GetServerLaunchExecutableAsync(GameInfo game, string folder)
+    {
+        if (server is null) return null;
+        try
+        {
+            var info = await http.GetFromJsonAsync<ServerLaunchPath>(
+                server + "/api/games/" + Uri.EscapeDataString(game.Id) + "/launch-path");
+            if (info is null || string.IsNullOrWhiteSpace(info.Path) || Path.IsPathRooted(info.Path))
+                return null;
+            var fullFolder = Path.GetFullPath(folder);
+            var fullPath = Path.GetFullPath(Path.Combine(fullFolder, info.Path));
+            if (!fullPath.StartsWith(fullFolder + Path.DirectorySeparatorChar,
+                StringComparison.OrdinalIgnoreCase)) return null;
+            return File.Exists(fullPath) ? fullPath : null;
+        }
+        catch (HttpRequestException) { return null; }
+        catch (System.Text.Json.JsonException) { return null; }
+        catch (ArgumentException) { return null; }
+    }
+
+    private async Task UploadLaunchPathAsync(GameInfo game, string executable)
+    {
+        if (server is null || string.IsNullOrWhiteSpace(executable) ||
+            string.IsNullOrWhiteSpace(AdminKeyBox.Password)) return;
+        var folder = GameExecutableFinder.GetInstallFolder(settings.InstallDirectory, game.Name);
+        var relative = Path.GetRelativePath(folder, executable);
+        if (Path.IsPathRooted(relative) || relative == ".." ||
+            relative.StartsWith(".." + Path.DirectorySeparatorChar)) return;
+        using var request = AdminRequest(HttpMethod.Put,
+            "/api/admin/games/" + Uri.EscapeDataString(game.Id) + "/launch-path");
+        request.Content = JsonContent.Create(new ServerLaunchPath(relative));
+        using var response = await http.SendAsync(request);
+        if (!response.IsSuccessStatusCode)
+            StatusText.Text = "Lokaler EXE-Pfad gespeichert; Server-Speicherung nicht möglich: " + response.StatusCode;
     }
 
     private HttpRequestMessage AdminRequest(HttpMethod method, string endpoint)
