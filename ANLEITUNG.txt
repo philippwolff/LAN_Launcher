@@ -406,3 +406,13 @@ Die Hinweise werden bei Serverbibliothek Im-/Export mitgesichert.
 API: GET /api/games/{id}/start-notice;
 PUT /api/admin/games/{id}/start-notice (nur Admin).
 Server und Client nach Pull origin neu starten/erstellen.
+
+UPLOAD BEI 100 PROZENT:
+Bei grossen ZIP-Dateien (z.B. 10 GB) bedeutet 100 % zunaechst
+nur, dass der Client die Daten gesendet hat. Der Server muss das
+Multipart-Formular verarbeiten, das Paket speichern und den
+Katalogeintrag anlegen. Das Upload-Fenster zeigt deshalb jetzt
+"100 % uebertragen - warte auf Bestaetigung des Servers".
+Erst nach der Serverantwort wird das Fenster geschlossen.
+Bei grossen Dateien nicht vorschnell abbrechen; auf freien
+Speicherplatz im Server-Speicherordner und Windows-Temp achten.
