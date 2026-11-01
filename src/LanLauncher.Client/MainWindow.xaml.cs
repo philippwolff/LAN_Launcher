@@ -17,6 +17,7 @@ public partial class MainWindow : Window
     private string? server;
     private LauncherSettings settings = LauncherSettings.Load();
     private bool updatingGames;
+    private bool serverConnected;
 
     private void Settings_Click(object sender, RoutedEventArgs e)
     {
@@ -55,6 +56,7 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
         timer.Tick += async (_, _) => await RefreshAsync();
+        ShowOfflineLibrary("Offline – lokal installierte Spiele verfügbar");
     }
     private async void Connect_Click(object sender, RoutedEventArgs e)
     {
@@ -66,16 +68,17 @@ public partial class MainWindow : Window
             var name = NameBox.Text.Trim();
             if (name.Length is < 2 or > 32) { StatusText.Text = "Benutzername: 2–32 Zeichen."; return; }
             var response = await http.PostAsJsonAsync(server + "/api/join", new JoinRequest(name, clientId));
-            if (!response.IsSuccessStatusCode) { StatusText.Text = "Anmeldung fehlgeschlagen: " + await response.Content.ReadAsStringAsync(); timer.Stop(); return; }
+            if (!response.IsSuccessStatusCode) { serverConnected = false; timer.Stop(); ShowOfflineLibrary("Anmeldung fehlgeschlagen – lokale Spiele verfügbar"); return; }
+            serverConnected = true;
             StatusText.Text = "Verbunden als " + name;
             timer.Start();
             await RefreshAsync();
         }
-        catch (Exception ex) { timer.Stop(); StatusText.Text = "Verbindungsfehler: " + ex.Message; }
+        catch (Exception ex) { serverConnected = false; timer.Stop(); ShowOfflineLibrary("Server nicht erreichbar – Offline-Modus: " + ex.Message); }
     }
     private async Task RefreshAsync()
     {
-        if (server is null) return;
+        if (server is null || !serverConnected) return;
         try
         {
             await UpdatePresenceAsync();
@@ -104,7 +107,7 @@ public partial class MainWindow : Window
                     : "Online")).ToArray();
             StatusText.Text = "Verbunden — " + players.Length + " Spieler online";
         }
-        catch (Exception ex) { StatusText.Text = "Server nicht erreichbar: " + ex.Message; }
+        catch (Exception ex) { serverConnected = false; ShowOfflineLibrary("Server nicht erreichbar – Offline-Modus: " + ex.Message); }
     }
     private void GamesList_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
     {
@@ -138,7 +141,7 @@ public partial class MainWindow : Window
             hasInstalledExe = GameExecutableFinder.FindBest(gameFolder, game.Name) is not null;
         }
         ModConfiguration? modDetails = null;
-        try { modDetails = await GetModAsync(game); } catch (Exception) { }
+        if (serverConnected) try { modDetails = await GetModAsync(game); } catch (Exception) { }
         if (modDetails is not null)
         {
             var baseFolder = FindBaseGameFolder(modDetails);
@@ -151,8 +154,9 @@ public partial class MainWindow : Window
             }
         }
         popup.SetInstalled(hasInstalledExe);
+        popup.SetOffline(!serverConnected);
         popup.SetDownloaded(TryGetDownloadedPackage(game, out _));
-        if (server is not null && !GameDisplayNameConverter.LocalOnlyIds.Contains(game.Id))
+        if (serverConnected && server is not null && !GameDisplayNameConverter.LocalOnlyIds.Contains(game.Id))
         {
             try
             {
@@ -162,7 +166,7 @@ public partial class MainWindow : Window
             catch (Exception) { /* Old server versions may not support tags yet. */ }
         }
         if (popup.ShowDialog() != true) return;
-        if (GameDisplayNameConverter.LocalOnlyIds.Contains(game.Id) &&
+        if (serverConnected && GameDisplayNameConverter.LocalOnlyIds.Contains(game.Id) &&
             (popup.SelectedAction == GameActionsWindow.GameAction.Install ||
              popup.SelectedAction == GameActionsWindow.GameAction.LocalInstall ||
              popup.SelectedAction == GameActionsWindow.GameAction.Download ||
@@ -202,7 +206,7 @@ public partial class MainWindow : Window
                 OpenGameSettings(game);
                 break;
             case GameActionsWindow.GameAction.Uninstall:
-                if (await GetModAsync(game) is not null)
+                if (serverConnected && await GetModAsync(game) is not null)
                     MessageBox.Show(this, "Der Mod teilt sich den Hauptspielordner. Eine automatische Deinstallation könnte Company of Heroes beschädigen. Bitte den offiziellen Mod-Deinstaller verwenden; der Launcher löscht keine gemeinsamen Dateien.", "Mod sicher deinstallieren", MessageBoxButton.OK, MessageBoxImage.Warning);
                 else UninstallGame(game);
                 break;
@@ -331,7 +335,7 @@ public partial class MainWindow : Window
         if (!settings.InstalledExecutables.TryGetValue(game.Id, out var executable) || !File.Exists(executable))
         {
             var installFolder = GameExecutableFinder.GetInstallFolder(settings.InstallDirectory, game.Name);
-            var detected = await GetServerLaunchExecutableAsync(game, installFolder)
+            var detected = (serverConnected ? await GetServerLaunchExecutableAsync(game, installFolder) : null)
                 ?? GameExecutableFinder.FindBest(installFolder, game.Name);
             if (detected is not null)
             {
@@ -376,7 +380,7 @@ public partial class MainWindow : Window
             });
             TrackGameProcess(process, game.Id);
             StatusText.Text = "Spiel gestartet: " + game.Name;
-            await ShowGameStartNoticeAsync(game);
+            if (serverConnected) await ShowGameStartNoticeAsync(game);
         }
         catch (Exception ex) { StatusText.Text = "Spielstart fehlgeschlagen: " + ex.Message; }
     }
