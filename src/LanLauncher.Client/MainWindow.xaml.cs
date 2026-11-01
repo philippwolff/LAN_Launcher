@@ -533,6 +533,20 @@ public partial class MainWindow : Window
             return;
         }
 
+        ModConfiguration? modConfig;
+        try { modConfig = await GetModAsync(game); }
+        catch (Exception ex)
+        {
+            StatusText.Text = "Mod-Konfiguration nicht erreichbar: " + ex.Message;
+            return;
+        }
+        if (modConfig is not null && FindBaseGameFolder(modConfig) is null)
+        {
+            MessageBox.Show(this, "Bitte zuerst das Hauptspiel installieren.",
+                "Mod benötigt Hauptspiel", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
         // Use the configured installation directory without asking every time.
         var targetFolder = Path.Combine(settings.InstallDirectory,
             string.Concat(game.Name.Select(ch => Path.GetInvalidFileNameChars().Contains(ch) ? '_' : ch)));
@@ -579,7 +593,13 @@ public partial class MainWindow : Window
             activeTransfers.Remove(popup);
             popup.CloseAfterTransfer();
 
-            if (extension == ".zip")
+            if (modConfig is not null)
+            {
+                if (extension != ".zip")
+                    throw new InvalidDataException("Mehrstufige Mods müssen als ZIP mit allen Installern hochgeladen werden.");
+                await InstallModArchiveAsync(game, modConfig, tempPackage);
+            }
+            else if (extension == ".zip")
             {
                 if (Directory.Exists(targetFolder) && Directory.EnumerateFileSystemEntries(targetFolder).Any())
                     throw new IOException("Der Zielordner ist nicht leer: " + targetFolder);
