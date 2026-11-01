@@ -7,11 +7,19 @@ public partial class InstallerOptionsWindow : Window
 {
     public string InstallerType => (InstallerTypeBox.SelectedItem as ComboBoxItem)?.Tag?.ToString() ?? "manual";
 
-    public InstallerOptionsWindow(string gameName, string targetFolder, string savedType)
+    public InstallerOptionsWindow(string gameName, string targetFolder, string savedType, bool automaticallyDetected)
     {
         InitializeComponent();
         GameTitle.Text = "Installation von " + gameName;
         TargetPath.Text = targetFolder;
+        if (automaticallyDetected)
+        {
+            foreach (var item in InstallerTypeBox.Items.OfType<ComboBoxItem>())
+            {
+                if (item.Tag?.ToString() == savedType)
+                    item.Content = item.Content + " (automatisch erkannt)";
+            }
+        }
         foreach (var item in InstallerTypeBox.Items.OfType<ComboBoxItem>())
         {
             if (item.Tag?.ToString() == savedType)
