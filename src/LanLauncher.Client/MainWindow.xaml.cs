@@ -433,7 +433,7 @@ public partial class MainWindow : Window
                 var savedType = detectedType != "manual"
                     ? detectedType
                     : settings.InstallerTypes.GetValueOrDefault(game.Id) ?? "manual";
-                var options = new InstallerOptionsWindow(game.Name, targetFolder, savedType) { Owner = this };
+                var options = new InstallerOptionsWindow(game.Name, targetFolder, savedType, detectedType != "manual") { Owner = this };
                 if (options.ShowDialog() == true)
                 {
                     // Save the installer outside the actual game destination; the installer
