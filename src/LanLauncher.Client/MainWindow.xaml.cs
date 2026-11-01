@@ -397,7 +397,13 @@ public partial class MainWindow : Window
             request.Content = JsonContent.Create(new { fileName = file, name = GameNameBox.Text, version = GameVersionBox.Text, description = "" });
             using var response = await http.SendAsync(request);
             StatusText.Text = response.IsSuccessStatusCode ? "Spiel importiert." : "Import fehlgeschlagen: " + await response.Content.ReadAsStringAsync();
-            if (response.IsSuccessStatusCode) await RefreshAsync();
+            if (response.IsSuccessStatusCode)
+            {
+                var imported = await response.Content.ReadFromJsonAsync<GameInfo>();
+                if (imported is not null) await SaveTagsAsync(imported.Id, pendingTags);
+                pendingTags = new([], []);
+                await RefreshAsync();
+            }
         }
         catch (Exception ex) { StatusText.Text = ex.Message; }
     }
