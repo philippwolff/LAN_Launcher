@@ -243,3 +243,18 @@ Wenn auf Port 8080 bereits ein LAN Launcher Server ueber /api/health
 antwortet, meldet Server-starten.cmd jetzt den laufenden Server und
 versucht keinen zweiten dotnet-run-Build. Bei einem haengenden
 Altprozess den laufenden Server zuerst sauber mit Strg+C beenden.
+
+SPIEL LOKAL DEINSTALLIEREN:
+Im Fenster Spielaktionen gibt es nun "Spiel deinstallieren".
+Falls im Installationsordner ein Uninstaller (unins*.exe oder
+uninstall*.exe) gefunden wird, kann der Benutzer diesen nach
+Bestaetigung starten. Die eigentliche Entfernung erledigt dann
+der Installationsassistent des Spiels.
+Bei vom Launcher entpackten ZIP-Spielen ohne Installer kann nach
+deutlicher Rueckfrage der gesamte verwaltete Spielordner entfernt
+werden; dabei koennen auch lokale Spielstaende im Ordner verloren gehen.
+Bei EXE-Installationen ohne erkennbaren Uninstaller wird aus
+Sicherheitsgruenden nicht automatisch geloescht: Deinstallation
+stattdessen ueber Windows Einstellungen / Installierte Apps.
+Die Funktion loescht nie das Paket auf dem LAN-Server.
+Nach Pull origin den Client erneut mit Client-EXE-erstellen.cmd bauen.
