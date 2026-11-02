@@ -35,6 +35,11 @@ jobs:
           -p:PublishReadyToRun=false
           --output publish/client
 
+      - name: Embed build identity
+        shell: pwsh
+        run: |
+          Set-Content -Path "publish/client/launcher-build.txt" -Value "${{ github.run_id }}" -NoNewline -Encoding ascii
+
       - name: Package ZIP
         shell: pwsh
         run: |
