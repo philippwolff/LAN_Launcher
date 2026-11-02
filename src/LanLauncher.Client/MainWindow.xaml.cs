@@ -890,7 +890,7 @@ public partial class MainWindow : Window
                     {
                         await output.WriteAsync(buffer.AsMemory(0, count), popup.Cancellation);
                         received += count;
-                        popup.Update(received, total);
+                        popup.Update(received, total, showDownloadSpeed: true);
                     }
                     await output.FlushAsync(popup.Cancellation);
                     if (total.HasValue && received != total.Value)
