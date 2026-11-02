@@ -441,6 +441,12 @@ public partial class MainWindow : Window
             settings.AdditionalExecutables.Remove(game.Id);
         else
             settings.AdditionalExecutables[game.Id] = window.AdditionalExecutables.ToList();
+        foreach (var path in settings.CompatibilityModes.Keys.ToArray())
+            if (window.CompatibilityModes.ContainsKey(path) || path == window.ExecutablePath ||
+                window.AdditionalExecutables.Any(x => x.ExecutablePath == path))
+                settings.CompatibilityModes.Remove(path);
+        foreach (var entry in window.CompatibilityModes)
+            settings.CompatibilityModes[entry.Key] = entry.Value;
         UpdateSelectedGameActions();
         try
         {
@@ -514,11 +520,15 @@ public partial class MainWindow : Window
         else executable = launchOptions[0].ExecutablePath;
         try
         {
-            var process = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(executable)
+            var startInfo = new System.Diagnostics.ProcessStartInfo(executable)
             {
-                UseShellExecute = true,
+                UseShellExecute = !settings.CompatibilityModes.ContainsKey(executable),
                 WorkingDirectory = Path.GetDirectoryName(executable)!
-            });
+            };
+            if (settings.CompatibilityModes.TryGetValue(executable, out var compatibilityMode) &&
+                !string.IsNullOrWhiteSpace(compatibilityMode))
+                startInfo.Environment["__COMPAT_LAYER"] = compatibilityMode;
+            var process = System.Diagnostics.Process.Start(startInfo);
             TrackGameProcess(process, game.Id);
             StatusText.Text = "Spiel gestartet: " + game.Name;
             if (serverConnected) await ShowGameStartNoticeAsync(game);
