@@ -516,3 +516,16 @@ Bereits vorhandene Spiele behalten ihre bisherigen IDs,
 damit Downloads, Mods und gespeicherte Einstellungen
 weiterhin zugeordnet bleiben. Die Zuordnung alter IDs zu
 Spielnamen steht in der serverseitigen games.json.
+
+GITHUB ACTIONS: WINDOWS CLIENT ZIP
+Unter https://github.com/philippwolff/LAN_Launcher/actions
+den Workflow "Windows Client ZIP" oeffnen und bei Bedarf
+ueber "Run workflow" starten. Nach erfolgreichem Durchlauf
+unter "Artifacts" LAN_Party_Client-win-x64 herunterladen.
+Das heruntergeladene Artifact-ZIP entpacken; darin befindet
+sich LAN_Party_Client-win-x64.zip. Auch dieses entpacken
+und LanLauncher.Client.exe aus dem entpackten Ordner starten.
+Der Windows-x64-Client wird mit .NET 10 self-contained
+erstellt. Der Build ist NICHT digital signiert; Smart App
+Control kann die Dateien weiterhin blockieren. Der Workflow
+ist ein unabhaengiger Build-Test, keine Sicherheitsfreigabe.
