@@ -1,4 +1,5 @@
 using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 using LanLauncher.Shared;
 
@@ -49,7 +50,7 @@ public sealed class GameCatalog
             throw new ArgumentException("Nur ZIP- und EXE-Dateien im Inbox-Ordner werden unterstützt.");
         var source = Path.Combine(Inbox, file);
         if (!File.Exists(source)) throw new FileNotFoundException("Datei nicht im Inbox-Ordner gefunden.");
-        var id = Guid.NewGuid().ToString("N");
+        var id = CreateGameId(name);
         var target = Path.Combine(root, "Packages", id + Path.GetExtension(file).ToLowerInvariant());
         File.Copy(source, target);
         var game = new GameInfo(id, name.Trim(), version.Trim(), description);
@@ -62,12 +63,33 @@ public sealed class GameCatalog
         var ext = Path.GetExtension(originalFileName).ToLowerInvariant();
         if (ext is not (".zip" or ".exe")) throw new ArgumentException("Nur ZIP und EXE erlaubt.");
         if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(version)) throw new ArgumentException("Name und Version erforderlich.");
-        var id = Guid.NewGuid().ToString("N");
+        var id = CreateGameId(name);
         var target = Path.Combine(root, "Packages", id + ext);
         using (var output = File.Create(target)) input.CopyTo(output);
         var game = new GameInfo(id, name.Trim(), version.Trim(), description);
         lock (gate) { games[id] = game; Save(); }
         return game;
+    }
+
+    private static string CreateGameId(string name)
+    {
+        var normalized = name.Trim().ToLowerInvariant().Normalize(NormalizationForm.FormD);
+        var builder = new StringBuilder();
+        foreach (var ch in normalized)
+        {
+            if (System.Globalization.CharUnicodeInfo.GetUnicodeCategory(ch) ==
+                System.Globalization.UnicodeCategory.NonSpacingMark) continue;
+            if (ch is >= 'a' and <= 'z' or >= '0' and <= '9') builder.Append(ch);
+            else if (ch is 'ä') builder.Append("ae");
+            else if (ch is 'ö') builder.Append("oe");
+            else if (ch is 'ü') builder.Append("ue");
+            else if (ch is 'ß') builder.Append("ss");
+            else if (builder.Length > 0 && builder[^1] != '-') builder.Append('-');
+        }
+        var slug = builder.ToString().Trim('-');
+        if (slug.Length > 48) slug = slug[..48].TrimEnd('-');
+        if (slug.Length == 0) slug = "spiel";
+        return slug + "-" + Guid.NewGuid().ToString("N")[..8];
     }
 
     public (string Path, string Name)? Package(string id)
