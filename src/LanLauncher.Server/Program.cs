@@ -103,6 +103,20 @@ app.MapPost("/api/status", (StatusRequest req) =>
     players[req.ClientId] = (current.Player with { Status = req.Status, GameId = req.Status == "Im Spiel" ? req.GameId : null }, DateTimeOffset.UtcNow);
     return Results.Ok();
 });
+app.MapGet("/api/admin/library/pending", (HttpRequest req) =>
+    !IsAdmin(req) ? Results.Unauthorized() : Results.Ok(libraryService.UnregisteredPackages()));
+app.MapPost("/api/admin/library/register", (HttpRequest req, RegisterPackageRequest data) =>
+{
+    if (!IsAdmin(req)) return Results.Unauthorized();
+    try
+    {
+        var game = libraryService.RegisterPackage(data.FileName, data.Name, data.Version, data.Description, data.Tags);
+        catalog.ReloadFromDisk();
+        return Results.Ok(game);
+    }
+    catch (Exception ex) when (ex is ArgumentException or FileNotFoundException or IOException)
+    { return Results.BadRequest(ex.Message); }
+});
 app.MapPost("/api/admin/library/sync", (HttpRequest req) =>
 {
     if (!IsAdmin(req)) return Results.Unauthorized();
@@ -174,3 +188,4 @@ public record ImportGameRequest(string FileName, string Name, string Version, st
 public record LaunchPathRequest(string Path);
 
 public record GameStartNotice(string Text);
+\npublic record RegisterPackageRequest(string FileName, string Name, string Version, string? Description, GameTags Tags);\n
