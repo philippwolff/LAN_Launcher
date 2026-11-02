@@ -529,3 +529,12 @@ Der Windows-x64-Client wird mit .NET 10 self-contained
 erstellt. Der Build ist NICHT digital signiert; Smart App
 Control kann die Dateien weiterhin blockieren. Der Workflow
 ist ein unabhaengiger Build-Test, keine Sicherheitsfreigabe.
+
+UPDATE-BUTTON IM CLIENT:
+Oben rechts in der blauen Kopfzeile befindet sich
+"Updates pruefen". Der Button oeffnet den Windows Client ZIP
+Workflow auf GitHub Actions im Browser. Dort den neuesten
+erfolgreichen Durchlauf und sein Artifact herunterladen.
+Eine automatische Versionspruefung oder Installation erfolgt
+noch nicht; insbesondere private GitHub-Repositories erfordern
+fuer Artifact-Downloads eine GitHub-Anmeldung.
