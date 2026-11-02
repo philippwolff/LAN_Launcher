@@ -470,3 +470,12 @@ werden offline deaktiviert. Die Online-Spielerliste ist leer.
 Mit "Verbinden" kann jederzeit erneut eine Verbindung
 aufgebaut werden. Einige Spiele koennen unabhaengig vom
 Launcher selbst einen Internetdienst oder DRM benoetigen.
+
+ADMIN-AKTIONEN IN DEN SPIELAKTIONEN:
+Im Fenster "Spielaktionen" gibt es nun einen Button "Admin".
+Beim Anklicken werden die bisherigen Admin-Aktionen aufgeklappt:
+"Vom Server loeschen", "Mod zuordnen",
+"Starthinweis bearbeiten" und "Tags bearbeiten".
+Erneutes Anklicken klappt den Bereich wieder zu.
+Im Offline-Modus ist "Admin" deaktiviert. Die serverseitigen
+Admin-Pruefungen bleiben unveraendert bestehen.
