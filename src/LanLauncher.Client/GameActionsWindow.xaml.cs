@@ -12,6 +12,7 @@ public partial class GameActionsWindow : Window
     {
         InitializeComponent();
         GameTitle.Text = game.Name + " (Version " + game.Version + ")";
+        GameIdText.Text = "Server-ID: " + game.Id;
     }
 
     public void SetOffline(bool offline)
