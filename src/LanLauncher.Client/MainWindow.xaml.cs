@@ -499,7 +499,17 @@ public partial class MainWindow : Window
 
     private async void StartGame(GameInfo game)
     {
-        if (!settings.InstalledExecutables.TryGetValue(game.Id, out var executable) || !File.Exists(executable))
+        var serverPaths = serverConnected ? await GetServerLaunchOptionsAsync(game) : new List<string>();
+        var gameFolder = GameExecutableFinder.GetInstallFolder(settings.InstallDirectory, game.Name);
+        var serverChoices = serverPaths.Select(path => new
+        {
+            Label = Path.GetFileNameWithoutExtension(path),
+            FullPath = Path.GetFullPath(Path.Combine(gameFolder, path))
+        }).Where(x => x.FullPath.StartsWith(Path.GetFullPath(gameFolder) + Path.DirectorySeparatorChar,
+            StringComparison.OrdinalIgnoreCase) && File.Exists(x.FullPath))
+          .Select(x => new GameLaunchOption(x.Label, x.FullPath)).ToList();
+        settings.InstalledExecutables.TryGetValue(game.Id, out var executable);
+        if (serverChoices.Count == 0 && (string.IsNullOrWhiteSpace(executable) || !File.Exists(executable)))
         {
             var installFolder = GameExecutableFinder.GetInstallFolder(settings.InstallDirectory, game.Name);
             var detected = (serverConnected ? await GetServerLaunchExecutableAsync(game, installFolder) : null)
@@ -539,7 +549,9 @@ public partial class MainWindow : Window
             }
         }
         var launchOptions = new List<GameLaunchOption>();
-        if (!string.IsNullOrWhiteSpace(executable) && File.Exists(executable))
+        if (serverChoices.Count > 0)
+            launchOptions.AddRange(serverChoices);
+        else if (!string.IsNullOrWhiteSpace(executable) && File.Exists(executable))
             launchOptions.Add(new GameLaunchOption("Hauptspiel", executable));
         if (settings.AdditionalExecutables.TryGetValue(game.Id, out var extras))
             launchOptions.AddRange(extras.Where(x => File.Exists(x.ExecutablePath)));
@@ -574,6 +586,24 @@ public partial class MainWindow : Window
     }
 
     private sealed record ServerLaunchPath(string Path);
+
+    private async Task<List<string>> GetServerLaunchOptionsAsync(GameInfo game)
+    {
+        if (server is null) return [];
+        try
+        {
+            var result = await http.GetFromJsonAsync<ServerLaunchOptions>(
+                server + "/api/games/" + Uri.EscapeDataString(game.Id) + "/launch-options");
+            return result?.Paths?.Where(p => !string.IsNullOrWhiteSpace(p) &&
+                !Path.IsPathRooted(p) &&
+                !p.Split(new[] { '/', (char)92 }).Any(part => part is "." or ".." or "") &&
+                p.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)).Take(2).ToList() ?? [];
+        }
+        catch (HttpRequestException) { return []; }
+        catch (System.Text.Json.JsonException) { return []; }
+    }
+
+    private sealed record ServerLaunchOptions(string[] Paths);
 
     private async Task<string?> GetServerLaunchExecutableAsync(GameInfo game, string folder)
     {
