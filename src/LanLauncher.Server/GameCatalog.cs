@@ -47,8 +47,7 @@ public sealed class GameCatalog
         {
             var packageFolder = Path.Combine(root, "Packages");
             return games.Values
-                .Where(g => File.Exists(Path.Combine(packageFolder, g.Id + ".zip"))
-                         || File.Exists(Path.Combine(packageFolder, g.Id + ".exe")))
+                .Where(g => GamePackagePaths.Find(packageFolder, g.Id) is not null)
                 .OrderBy(g => g.Name)
                 .ToArray();
         }
@@ -63,9 +62,9 @@ public sealed class GameCatalog
         var source = Path.Combine(Inbox, file);
         if (!File.Exists(source)) throw new FileNotFoundException("Datei nicht im Inbox-Ordner gefunden.");
         var id = CreateGameId(name);
-        var target = Path.Combine(root, "Packages", id + Path.GetExtension(file).ToLowerInvariant());
-        File.Copy(source, target);
         var game = new GameInfo(id, name.Trim(), version.Trim(), description);
+        var target = Path.Combine(root, "Packages", GamePackagePaths.Filename(game, Path.GetExtension(file).ToLowerInvariant()));
+        File.Copy(source, target);
         lock (gate) { games[id] = game; Save(); }
         return game;
     }
@@ -76,7 +75,8 @@ public sealed class GameCatalog
         if (ext is not (".zip" or ".exe")) throw new ArgumentException("Nur ZIP und EXE erlaubt.");
         if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(version)) throw new ArgumentException("Name und Version erforderlich.");
         var id = CreateGameId(name);
-        var target = Path.Combine(root, "Packages", id + ext);
+        var game = new GameInfo(id, name.Trim(), version.Trim(), description);
+        var target = Path.Combine(root, "Packages", GamePackagePaths.Filename(game, ext));
         using (var output = File.Create(target)) input.CopyTo(output);
         var game = new GameInfo(id, name.Trim(), version.Trim(), description);
         lock (gate) { games[id] = game; Save(); }
@@ -108,12 +108,8 @@ public sealed class GameCatalog
     {
         var folder = Path.Combine(root, "Packages");
         lock (gate) { if (!games.ContainsKey(id)) return null; }
-        foreach (var ext in new[] { ".zip", ".exe" })
-        {
-            var path = Path.Combine(folder, id + ext);
-            if (File.Exists(path)) return (path, id + ext);
-        }
-        return null;
+        var path = GamePackagePaths.Find(folder, id);
+        return path is null ? null : (path, Path.GetFileName(path));
     }
 
     public string? GetLaunchPath(string id)
@@ -145,11 +141,10 @@ public sealed class GameCatalog
             Save();
         }
         var package = Path.Combine(root, "Packages");
-        foreach (var ext in new[] { ".zip", ".exe" })
-        {
-            var path = Path.Combine(package, id + ext);
-            if (File.Exists(path)) File.Delete(path);
-        }
+        foreach (var path in Directory.GetFiles(package).Where(p =>
+            Path.GetFileNameWithoutExtension(p) == id ||
+            Path.GetFileNameWithoutExtension(p).EndsWith("--" + id, StringComparison.Ordinal)))
+            File.Delete(path);
         return true;
     }
 
