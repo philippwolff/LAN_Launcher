@@ -57,17 +57,8 @@ jobs:
         run: |
           New-Item -ItemType Directory -Path 'publish/server-package/Server' -Force | Out-Null
           Copy-Item -Path 'publish/server/*' -Destination 'publish/server-package/Server' -Recurse -Force
-          @'
-          @echo off
-          cd /d "%~dp0Server"
-          start "" "LanLauncher.Server.exe"
-          timeout /t 2 /nobreak >nul
-          start "" "http://localhost:8080/admin"
-          '@ | Set-Content -Path 'publish/server-package/Server starten.cmd' -Encoding ascii
-          @'
-          @echo off
-          start "" "http://localhost:8080/admin"
-          '@ | Set-Content -Path 'publish/server-package/Serververwaltung oeffnen.cmd' -Encoding ascii
+          @('@echo off', 'cd /d "%~dp0Server"', 'start "" "LanLauncher.Server.exe"', 'timeout /t 2 /nobreak >nul', 'start "" "http://localhost:8080/admin"') | Set-Content -Path 'publish/server-package/Server starten.cmd' -Encoding ascii
+          @('@echo off', 'start "" "http://localhost:8080/admin"') | Set-Content -Path 'publish/server-package/Serververwaltung oeffnen.cmd' -Encoding ascii
 
       - name: Embed client and server build identity
         shell: pwsh
