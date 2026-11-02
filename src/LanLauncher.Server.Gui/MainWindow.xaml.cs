@@ -43,6 +43,45 @@ public partial class MainWindow : Window
         catch (UnauthorizedAccessException) { ServerVersionText.Text = "Version unbekannt"; }
     }
 
+    private async void Update_Click(object sender, RoutedEventArgs e)
+    {
+        UpdateButton.IsEnabled = false;
+        UpdateButton.Content = "Prüfe ...";
+        try
+        {
+            var (release, message) = await ServerUpdater.CheckAsync();
+            if (release is null)
+            {
+                MessageBox.Show(this, message, "Server-Updates", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+            if (MessageBox.Show(this, message + "\n\nJetzt herunterladen und installieren? Die Server-GUI wird neu gestartet und der Server währenddessen gestoppt.",
+                "Server-Update", MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes)
+                return;
+            if (await IsRunningAsync() && serverProcess is not { HasExited: false })
+            {
+                MessageBox.Show(this, "Es läuft ein Server, der nicht über diese GUI gestartet wurde. Bitte diesen Server vor dem Update beenden.",
+                    "Server-Update", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+            UpdateButton.Content = "Lade Update ...";
+            await ServerUpdater.InstallAsync(release, Environment.ProcessId,
+                serverProcess is { HasExited: false } ? serverProcess.Id : null);
+            Application.Current.Shutdown();
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or IOException or
+            System.Text.Json.JsonException or UnauthorizedAccessException or InvalidOperationException)
+        {
+            MessageBox.Show(this, "Update fehlgeschlagen: " + ex.Message, "Server-Update",
+                MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+        finally
+        {
+            UpdateButton.IsEnabled = true;
+            UpdateButton.Content = "Updates prüfen";
+        }
+    }
+
     private async void Start_Click(object sender, RoutedEventArgs e)
     {
         if (!File.Exists(serverExe))
