@@ -5,50 +5,60 @@ using System.Text.Json;
 
 namespace LanLauncher.Client;
 
+internal sealed record LauncherRelease(Version Version, string Tag, string DownloadUrl, string PageUrl, string Notes);
+
 internal static class LauncherUpdateChecker
 {
-    private const string RunsUrl =
-        "https://api.github.com/repos/philippwolff/LAN_Launcher/actions/workflows/windows-client.yml/runs?branch=main&status=success&per_page=1";
+    private const string LatestUrl = "https://api.github.com/repos/philippwolff/LAN_Launcher/releases/latest";
+    private const string AssetName = "LAN_Party_Client-win-x64.zip";
 
-    internal static async Task<(bool? Available, string Details)> CheckAsync()
+    internal static async Task<(bool? Available, string Details, LauncherRelease? Release)> CheckAsync()
     {
-        var marker = Path.Combine(AppContext.BaseDirectory, "launcher-build.txt");
-        if (!File.Exists(marker) || !long.TryParse(File.ReadAllText(marker).Trim(), out var installedRun))
-            return (null, "Build-ID fehlt – Updateprüfung erst mit einem neuen GitHub-Actions-Paket möglich.");
-
+        var marker = Path.Combine(AppContext.BaseDirectory, "launcher-version.txt");
+        if (!File.Exists(marker) || !TryVersion(File.ReadAllText(marker).Trim(), out var installed))
+            return (null, "Keine veröffentlichte Versionsnummer vorhanden. Bitte zuerst eine Release-Version installieren.", null);
         try
         {
-            using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(8) };
-            using var request = new HttpRequestMessage(HttpMethod.Get, RunsUrl);
-            request.Headers.UserAgent.Add(new ProductInfoHeaderValue("LANLauncher", "1.0"));
-            request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/vnd.github+json"));
-
-            // For private repositories, users may optionally provide a fine-grained,
-            // read-only Actions token via the environment. Never store a token in the app.
-            var token = Environment.GetEnvironmentVariable("LANLAUNCHER_GITHUB_TOKEN");
-            if (!string.IsNullOrWhiteSpace(token))
-                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token.Trim());
-
-            using var response = await client.SendAsync(request);
-            if (!response.IsSuccessStatusCode)
-                return (null, "GitHub-Abfrage nicht möglich (HTTP " + (int)response.StatusCode +
-                    "). Bei privaten Repositories ist eine Berechtigung erforderlich.");
-
+            using var client = CreateClient(TimeSpan.FromSeconds(12));
+            using var response = await client.GetAsync(LatestUrl);
+            if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                return (null, "Noch kein öffentliches GitHub Release vorhanden.", null);
+            response.EnsureSuccessStatusCode();
             await using var stream = await response.Content.ReadAsStreamAsync();
             using var json = await JsonDocument.ParseAsync(stream);
-            var runs = json.RootElement.GetProperty("workflow_runs");
-            if (runs.GetArrayLength() == 0)
-                return (null, "Noch kein erfolgreicher GitHub-Build gefunden.");
-
-            var latest = runs[0].GetProperty("id").GetInt64();
-            return latest > installedRun
-                ? (true, "Ein neuer Windows-Client-Build ist verfügbar.")
-                : (false, "Du verwendest den neuesten erfolgreichen Windows-Client-Build.");
+            var root = json.RootElement;
+            var tag = root.GetProperty("tag_name").GetString() ?? "";
+            if (!TryVersion(tag, out var latest))
+                return (null, "Das neueste Release hat keine unterstützte Versionsnummer.", null);
+            var assets = root.GetProperty("assets");
+            string? download = null;
+            foreach (var asset in assets.EnumerateArray())
+                if (asset.GetProperty("name").GetString() == AssetName)
+                    download = asset.GetProperty("browser_download_url").GetString();
+            if (download is null)
+                return (null, "Das neueste Release enthält noch kein Windows-Client-Paket.", null);
+            var release = new LauncherRelease(latest, tag, download,
+                root.GetProperty("html_url").GetString() ?? "",
+                root.TryGetProperty("body", out var body) ? body.GetString() ?? "" : "");
+            return latest > installed
+                ? (true, "Update " + tag + " verfügbar (installiert: v" + installed + ").", release)
+                : (false, "Aktuell: v" + installed + ". Kein neueres Release vorhanden.", null);
         }
-        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or
-            IOException or JsonException or UnauthorizedAccessException)
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or IOException
+            or JsonException or UnauthorizedAccessException)
         {
-            return (null, "Updateprüfung derzeit nicht möglich: " + ex.Message);
+            return (null, "Updateprüfung nicht möglich: " + ex.Message, null);
         }
     }
+
+    internal static HttpClient CreateClient(TimeSpan timeout)
+    {
+        var client = new HttpClient { Timeout = timeout };
+        client.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("LANLauncher", "1.0"));
+        client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/vnd.github+json"));
+        return client;
+    }
+
+    private static bool TryVersion(string tag, out Version version) =>
+        Version.TryParse(tag.TrimStart('v', 'V'), out version!);
 }
