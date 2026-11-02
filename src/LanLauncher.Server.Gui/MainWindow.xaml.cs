@@ -22,11 +22,25 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        UpdateVersionLabel();
         UpdateLanAddress();
         refreshTimer.Tick += async (_, _) => await RefreshAsync();
         refreshTimer.Start();
         Loaded += async (_, _) => await RefreshAsync();
         Closed += (_, _) => { refreshTimer.Stop(); http.Dispose(); serverProcess?.Dispose(); };
+    }
+
+    private void UpdateVersionLabel()
+    {
+        try
+        {
+            var file = Path.Combine(AppContext.BaseDirectory, "launcher-version.txt");
+            var version = File.Exists(file) ? File.ReadAllText(file).Trim() : "";
+            ServerVersionText.Text = System.Text.RegularExpressions.Regex.IsMatch(version, @"^v[0-9]+\.[0-9]+\.[0-9]+$")
+                ? version : "Entwicklungsversion";
+        }
+        catch (IOException) { ServerVersionText.Text = "Version unbekannt"; }
+        catch (UnauthorizedAccessException) { ServerVersionText.Text = "Version unbekannt"; }
     }
 
     private async void Start_Click(object sender, RoutedEventArgs e)
