@@ -215,6 +215,43 @@ public partial class MainWindow : Window
             OpenGameActions(game, action);
         }
     }
+    private async void HideGame_Click(object sender, RoutedEventArgs e)
+    {
+        if (GamesList.SelectedItem is not GameInfo game) return;
+        if (MessageBox.Show(this,
+                "Den Bibliothekseintrag \"" + game.Name + "\" ausblenden?\\n\\n" +
+                "Das Spiel und seine Dateien werden nicht gelöscht. Du kannst den Eintrag jederzeit wiederherstellen.",
+                "Spiel ausblenden", MessageBoxButton.YesNo, MessageBoxImage.Question,
+                MessageBoxResult.No) != MessageBoxResult.Yes) return;
+        settings.HiddenGameIds.Add(game.Id);
+        settings.Save();
+        if (serverConnected) await RefreshAsync();
+        else ShowOfflineLibrary("Eintrag ausgeblendet");
+        StatusText.Text = "Ausgeblendet: " + game.Name;
+    }
+
+    private async void RestoreHiddenGames_Click(object sender, RoutedEventArgs e)
+    {
+        if (settings.HiddenGameIds.Count == 0)
+        {
+            MessageBox.Show(this, "Es sind keine Spiele ausgeblendet.",
+                "Ausgeblendete Spiele", MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+        var names = settings.HiddenGameIds.Select(id =>
+            settings.KnownGames.TryGetValue(id, out var game) ? game.Name : id);
+        if (MessageBox.Show(this,
+                "Folgende Einträge wieder einblenden?\\n\\n" +
+                string.Join("\\n", names) +
+                "\\n\\nEs werden keine Dateien verändert.",
+                "Ausgeblendete Spiele", MessageBoxButton.YesNo, MessageBoxImage.Question,
+                MessageBoxResult.No) != MessageBoxResult.Yes) return;
+        settings.HiddenGameIds.Clear();
+        settings.Save();
+        if (serverConnected) await RefreshAsync();
+        else ShowOfflineLibrary("Alle ausgeblendeten Einträge wiederhergestellt");
+    }
+
     private void ActionStart_Click(object sender, RoutedEventArgs e) => RunSelectedGameAction(GameActionsWindow.GameAction.Start);
     private void ActionInstall_Click(object sender, RoutedEventArgs e) => RunSelectedGameAction(GameActionsWindow.GameAction.Install);
     private void ActionLocalInstall_Click(object sender, RoutedEventArgs e) => RunSelectedGameAction(GameActionsWindow.GameAction.LocalInstall);
