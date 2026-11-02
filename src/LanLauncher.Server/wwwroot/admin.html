@@ -30,6 +30,13 @@ label{display:block;margin:12px 0 4px}.checks{display:flex;flex-wrap:wrap;gap:10
  </details>
  <p id="message" role="status"></p>
 </div>
+<div class="panel" style="margin-bottom:14px">
+ <h2>Downloadverteilung</h2>
+ <label><input type="checkbox" id="fairDownload" checked> Downloadgeschwindigkeit gleichmäßig zwischen aktiven Downloads aufteilen</label>
+ <p><small>Aktiv: Die eingestellte Gesamtbandbreite wird aufgeteilt. Deaktiviert: Keine serverseitige Geschwindigkeitsbegrenzung; jeder Download nutzt die verfügbare Verbindung. Die Einstellung bleibt nach einem Neustart erhalten.</small></p>
+ <button id="saveDownloadSharing">Einstellung speichern</button>
+ <span id="downloadSharingStatus" role="status"></span>
+</div>
 <div class="columns">
  <section class="panel"><div class="row space"><h2>Hochgeladene Spiele</h2><span id="gameCount"></span></div>
  <details style="margin:12px 0"><summary style="cursor:pointer">Speicherort der Spielebibliothek ändern</summary><p><small>Die vorhandene Bibliothek wird in einen neuen, leeren Ordner kopiert. Der bisherige Ordner bleibt als Sicherung erhalten. Danach den Server neu starten.</small></p><label for="libraryPath">Neuer Bibliotheksordner auf dem Server-PC:</label><div class="row"><input id="libraryPath" type="text" placeholder="D:\\LAN-Spiele" style="flex:1;min-width:220px"><button id="loadLibraryPath">Aktuellen Pfad anzeigen</button><button id="saveLibraryPath">Speicherort übernehmen</button></div></details>
@@ -68,6 +75,19 @@ async function api(path,method='GET',data){
  if(!body.trim())return null;
  try{return JSON.parse(body)}catch{throw new Error('Ungültige Serverantwort: '+body.slice(0,180))}
 }
+async function loadDownloadSharing(){
+ try{
+  const data=await api('/api/admin/download-sharing');
+  $('fairDownload').checked=data.enabled;
+  $('downloadSharingStatus').textContent=data.enabled?'Gleichmäßige Verteilung aktiv':'Gleichmäßige Verteilung deaktiviert';
+ }catch(e){$('downloadSharingStatus').textContent=e.message}
+}
+$('saveDownloadSharing').addEventListener('click',()=>action(async()=>{
+ const data=await api('/api/admin/download-sharing','PUT',{enabled:$('fairDownload').checked});
+ $('downloadSharingStatus').textContent=data.enabled?'Gleichmäßige Verteilung aktiv':'Gleichmäßige Verteilung deaktiviert';
+ notice('Downloadverteilung gespeichert.');
+}));
+$('fairDownload').addEventListener('change',()=>{$('downloadSharingStatus').textContent='Noch nicht gespeichert';});
 async function refresh(){
  if(refreshing)return;refreshing=true;
  try{
