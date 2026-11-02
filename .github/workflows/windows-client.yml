@@ -1,0 +1,49 @@
+name: Windows Client ZIP
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'src/LanLauncher.Client/**'
+      - 'src/LanLauncher.Shared/**'
+      - '.github/workflows/windows-client.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  build-client:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Publish Windows x64 client
+        shell: pwsh
+        run: >
+          dotnet publish src/LanLauncher.Client/LanLauncher.Client.csproj
+          --configuration Release
+          --runtime win-x64
+          --self-contained true
+          -p:PublishSingleFile=false
+          -p:PublishReadyToRun=false
+          --output publish/client
+
+      - name: Package ZIP
+        shell: pwsh
+        run: |
+          Compress-Archive -Path 'publish/client/*' -DestinationPath 'LAN_Party_Client-win-x64.zip' -Force
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: LAN_Party_Client-win-x64
+          path: LAN_Party_Client-win-x64.zip
+          if-no-files-found: error
+          retention-days: 30
