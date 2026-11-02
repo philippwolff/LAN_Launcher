@@ -70,7 +70,9 @@ public partial class MainWindow : Window
                 MessageBox.Show(this, "Bitte zuerst den Server starten.", "Spiele synchronisieren");
                 return;
             }
-            var key = Environment.GetEnvironmentVariable("LANLAUNCHER_AdminKey");
+            var key = AdminKeyInput.Password.Trim();
+            if (string.IsNullOrWhiteSpace(key))
+                key = Environment.GetEnvironmentVariable("LANLAUNCHER_AdminKey");
             if (string.IsNullOrWhiteSpace(key))
             {
                 var configPath = Path.Combine(AppContext.BaseDirectory, "Server", "appsettings.json");
@@ -83,7 +85,7 @@ public partial class MainWindow : Window
             }
             if (string.IsNullOrWhiteSpace(key))
             {
-                MessageBox.Show(this, "Für die Synchronisierung muss ein AdminKey in Server/appsettings.json oder als Umgebungsvariable LANLAUNCHER_AdminKey konfiguriert sein.", "Administratorzugriff erforderlich");
+                MessageBox.Show(this, "Bitte den AdminKey oben in der Server-GUI eingeben. Alternativ kann er in Server/appsettings.json oder als Umgebungsvariable LANLAUNCHER_AdminKey hinterlegt werden.", "Administratorzugriff erforderlich");
                 return;
             }
             using var request = new HttpRequestMessage(HttpMethod.Get, BaseUrl + "/api/admin/library/pending");
