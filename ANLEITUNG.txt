@@ -538,3 +538,24 @@ erfolgreichen Durchlauf und sein Artifact herunterladen.
 Eine automatische Versionspruefung oder Installation erfolgt
 noch nicht; insbesondere private GitHub-Repositories erfordern
 fuer Artifact-Downloads eine GitHub-Anmeldung.
+
+AUTOMATISCHE UPDATE-PRUEFUNG (CLIENT):
+Beim Start liest der Client launcher-build.txt aus dem
+GitHub-Actions-Paket und vergleicht die Build-ID mit dem
+neuesten erfolgreichen Workflow-Lauf auf GitHub. Bei einem
+neueren Build zeigt der Button oben "Update verfuegbar!".
+Der Button oeffnet weiterhin die Download-Seite; er
+installiert Updates NICHT automatisch.
+Aeltere Pakete ohne launcher-build.txt koennen nicht
+automatisch verglichen werden.
+ACHTUNG PRIVATES REPOSITORY: Die GitHub-API kann ohne
+Anmeldung den neuesten Build nicht lesen. Optional kann
+ein eigener GitHub-Token mit ausschliesslich lesendem
+Actions-Zugriff als Umgebungsvariable
+LANLAUNCHER_GITHUB_TOKEN bereitgestellt werden. Tokens
+niemals in den Quellcode, ZIP-Dateien oder an Freunde
+weitergeben. Ohne Berechtigung bleibt der Button als
+manueller Link verfuegbar, eine automatische Benachrichtigung
+ist dann nicht moeglich. Fuer private Verteilung ohne Tokens
+wird spaeter ein eigener Update-Endpunkt auf dem LAN-Server
+benoetigt.
