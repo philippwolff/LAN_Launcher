@@ -21,6 +21,13 @@ label{display:block;margin:12px 0 4px}.checks{display:flex;flex-wrap:wrap;gap:10
  <div class="row space"><div><strong id="status">Status: Wird geprüft …</strong><p id="address">LAN-IP wird ermittelt …</p></div>
  <button id="stop">Server stoppen</button></div>
  <div class="row"><label for="key">AdminKey:</label><input id="key" type="password" autocomplete="off" placeholder="AdminKey eingeben"><button id="check">Zugriff prüfen</button><small>Nur für diese Browserseite; nicht gespeichert</small></div>
+ <details id="keySettings"><summary style="cursor:pointer;margin-top:12px">AdminKey einrichten / ändern</summary>
+ <p id="keyState">Status wird geladen …</p>
+ <div class="row"><label for="newKey">Neuer AdminKey:</label><input id="newKey" type="password" minlength="12" maxlength="256" autocomplete="new-password" placeholder="Mindestens 12 Zeichen">
+ <label for="confirmKey">Wiederholen:</label><input id="confirmKey" type="password" minlength="12" maxlength="256" autocomplete="new-password"></div>
+ <p><small>Bei bestehendem AdminKey zuerst den bisherigen Schlüssel oben eingeben. Der neue Schlüssel wird auf dem Server als gesalzener Hash gespeichert.</small></p>
+ <button id="saveKey">AdminKey speichern</button>
+ </details>
  <p id="message" role="status"></p>
 </div>
 <div class="columns">
@@ -67,6 +74,15 @@ async function refresh(){
  finally{refreshing=false}
 }
 async function action(fn){try{await fn()}catch(e){notice(e.message)}}
+async function keyStatus(){try{const data=await (await fetch('/api/admin/key/status',{cache:'no-store'})).json();$('keyState').textContent=data.configured?'AdminKey ist eingerichtet. Zum Ändern bisherigen Schlüssel oben eingeben.':'Noch kein AdminKey eingerichtet. Jetzt einen neuen festlegen.'}catch(e){$('keyState').textContent='Status nicht verfügbar.'}}
+$('saveKey').onclick=()=>action(async()=>{
+ const newKey=$('newKey').value;
+ if(newKey.length<12||newKey.length>256)throw new Error('Der neue AdminKey benötigt 12 bis 256 Zeichen.');
+ if(newKey!==$('confirmKey').value)throw new Error('Die neuen AdminKeys stimmen nicht überein.');
+ await api('/api/admin/key/set','POST',{oldKey:$('key').value,newKey});
+ $('key').value=newKey;$('newKey').value='';$('confirmKey').value='';
+ notice('AdminKey gespeichert. Ab sofort gilt der neue Schlüssel.');await keyStatus();
+});
 $('check').onclick=()=>action(async()=>{await api('/api/admin/check');notice('AdminKey ist gültig.')});
 $('folder').onclick=()=>action(async()=>{await api('/api/admin/dashboard/open-folder','POST');notice('Spieleordner wurde auf dem Server-PC geöffnet.')});
 $('stop').onclick=()=>action(async()=>{if(!confirm('Server wirklich stoppen? Alle Clients werden getrennt.'))return;await api('/api/admin/dashboard/stop','POST');notice('Server wird gestoppt. Zum erneuten Starten Server starten.cmd ausführen.')});
@@ -96,5 +112,5 @@ $('form').onsubmit=async e=>{
  genres:[...$('genres').querySelectorAll('input:checked')].map(x=>x.value)}};
  try{await api('/api/admin/library/register','POST',data);nextPackage()}catch(error){notice(error.message)}
 };
-refresh();initGenres();setInterval(refresh,3000);
+refresh();initGenres();keyStatus();setInterval(refresh,3000);
 </script></body></html>
