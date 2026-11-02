@@ -22,6 +22,8 @@ public partial class GameActionsWindow : Window
         ModButton.IsEnabled = !offline;
         NoticeButton.IsEnabled = !offline;
         TagsButton.IsEnabled = !offline;
+        AdminButton.IsEnabled = !offline;
+        if (offline) AdminActionsPanel.Visibility = Visibility.Collapsed;
     }
 
     public void SetDownloaded(bool downloaded) => LocalInstallButton.IsEnabled = downloaded;
@@ -42,6 +44,13 @@ public partial class GameActionsWindow : Window
     {
         SelectedAction = action;
         DialogResult = true;
+    }
+    private void Admin_Click(object sender, RoutedEventArgs e)
+    {
+        var expanded = AdminActionsPanel.Visibility != Visibility.Visible;
+        AdminActionsPanel.Visibility = expanded ? Visibility.Visible : Visibility.Collapsed;
+        AdminButton.Content = expanded ? "Admin ▲" : "Admin ▼";
+        Height = expanded ? 690 : 530;
     }
     private void Start_Click(object sender, RoutedEventArgs e) => Choose(GameAction.Start);
     private void Install_Click(object sender, RoutedEventArgs e) => Choose(GameAction.Install);
