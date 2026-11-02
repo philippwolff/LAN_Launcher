@@ -811,8 +811,9 @@ public partial class MainWindow : Window
             {
                 if (Directory.Exists(targetFolder) && Directory.EnumerateFileSystemEntries(targetFolder).Any())
                     throw new IOException("Der Zielordner ist nicht leer: " + targetFolder);
-                // Extraktion in einen frischen Ordner. Keine Dateien anderer Installationen überschreiben.
-                Directory.CreateDirectory(targetFolder);
+                // Extract into a unique temporary directory, never into Games.
+                var extractionFolder = Path.Combine(Path.GetTempPath(), "LANLauncher-Install-" + Guid.NewGuid().ToString("N"));
+                Directory.CreateDirectory(extractionFolder);
                 try
                 {
                     await Task.Run(() =>
@@ -826,12 +827,12 @@ public partial class MainWindow : Window
                             if (totalSize > maxUncompressedBytes)
                                 throw new InvalidDataException("Archiv überschreitet die maximale entpackte Größe (40 GB).");
                         }
-                        archive.ExtractToDirectory(targetFolder, overwriteFiles: false);
+                        archive.ExtractToDirectory(extractionFolder, overwriteFiles: false);
                     });
-                    StatusText.Text = "Spiel entpackt nach: " + targetFolder;
+                    StatusText.Text = "Installationspaket temporär entpackt.";
                     // Installer archives contain setup programs rather than an already playable game.
                     // Let the user explicitly approve each executable, in a predictable order.
-                    var installers = Directory.GetFiles(targetFolder, "*.exe", SearchOption.AllDirectories)
+                    var installers = Directory.GetFiles(extractionFolder, "*.exe", SearchOption.AllDirectories)
                         .Where(path =>
                         {
                             var name = Path.GetFileName(path);
@@ -853,7 +854,7 @@ public partial class MainWindow : Window
                         var confirmation = MessageBox.Show(this,
                             "Dieses Paket enthält " + installers.Length + " Installationsprogramme.\n\n" +
                             string.Join("\n", installers.Select((path, index) =>
-                                (index + 1) + ". " + Path.GetRelativePath(targetFolder, path))) +
+                                (index + 1) + ". " + Path.GetRelativePath(extractionFolder, path))) +
                             "\n\nDie Programme werden einzeln und nacheinander gestartet. " +
                             "Bitte jeden Assistenten vollständig abschließen, bevor der nächste startet.\n\n" +
                             "Nur ausführen, wenn du den Dateien vertraust. Jetzt beginnen?",
@@ -861,7 +862,7 @@ public partial class MainWindow : Window
                             MessageBoxImage.Warning, MessageBoxResult.No);
                         if (confirmation != MessageBoxResult.Yes)
                         {
-                            StatusText.Text = "Installationsdateien entpackt nach: " + targetFolder;
+                            StatusText.Text = "Installation abgebrochen. Temporäre Dateien werden entfernt.";
                             return;
                         }
                         for (var step = 0; step < installers.Length; step++)
@@ -869,13 +870,13 @@ public partial class MainWindow : Window
                             var path = installers[step];
                             var proceed = MessageBox.Show(this,
                                 "Schritt " + (step + 1) + " von " + installers.Length +
-                                "\n\n" + Path.GetRelativePath(targetFolder, path) +
+                                "\n\n" + Path.GetRelativePath(extractionFolder, path) +
                                 "\n\nDieses Installationsprogramm jetzt starten?",
                                 "Installation: " + game.Name, MessageBoxButton.YesNo,
                                 MessageBoxImage.Question, MessageBoxResult.No);
                             if (proceed != MessageBoxResult.Yes)
                             {
-                                StatusText.Text = "Installation unterbrochen. Dateien liegen in: " + targetFolder;
+                                StatusText.Text = "Installation unterbrochen. Temporäre Dateien werden entfernt.";
                                 return;
                             }
                             using var process = System.Diagnostics.Process.Start(
@@ -913,6 +914,8 @@ public partial class MainWindow : Window
                             StatusText.Text = "Installation abgeschlossen. Spiel-EXE bitte in den Einstellungen hinterlegen.";
                         return;
                     }
+                    // Archives without installers represent portable games; move them into Games.
+                    Directory.Move(extractionFolder, targetFolder);
                     var executable = GameExecutableFinder.FindBest(targetFolder, game.Name);
                     if (executable is null)
                     {
@@ -961,8 +964,15 @@ public partial class MainWindow : Window
                 }
                 catch
                 {
-                    try { Directory.Delete(targetFolder, recursive: true); } catch (IOException) { }
                     throw;
+                }
+                finally
+                {
+                    if (Directory.Exists(extractionFolder))
+                    {
+                        try { Directory.Delete(extractionFolder, recursive: true); }
+                        catch (Exception ex) { StatusText.Text = "Temporäre Installationsdateien konnten nicht vollständig entfernt werden: " + ex.Message; }
+                    }
                 }
             }
             else
