@@ -19,6 +19,15 @@ public partial class MainWindow : Window
     private bool updatingGames;
     private bool serverConnected;
 
+    private async Task CheckForUpdatesAsync()
+    {
+        var result = await LauncherUpdateChecker.CheckAsync();
+        UpdateButton.Content = result.Available == true ? "Update verfügbar!" : "Updates prüfen";
+        UpdateButton.ToolTip = result.Details + "\nKlicken, um GitHub Actions zu öffnen.";
+        if (result.Available == true)
+            UpdateButton.FontWeight = FontWeights.Bold;
+    }
+
     private void Update_Click(object sender, RoutedEventArgs e)
     {
         const string updatesUrl = "https://github.com/philippwolff/LAN_Launcher/actions/workflows/windows-client.yml";
@@ -75,6 +84,7 @@ public partial class MainWindow : Window
         InitializeComponent();
         timer.Tick += async (_, _) => await RefreshAsync();
         ShowOfflineLibrary("Offline – lokal installierte Spiele verfügbar");
+        Loaded += async (_, _) => await CheckForUpdatesAsync();
     }
     private async void Connect_Click(object sender, RoutedEventArgs e)
     {
