@@ -479,3 +479,11 @@ Beim Anklicken werden die bisherigen Admin-Aktionen aufgeklappt:
 Erneutes Anklicken klappt den Bereich wieder zu.
 Im Offline-Modus ist "Admin" deaktiviert. Die serverseitigen
 Admin-Pruefungen bleiben unveraendert bestehen.
+
+FENSTERGROESSEN:
+Das Hauptfenster startet mit 1400 x 900 Pixeln
+(Mindestgroesse 1050 x 700). Das Spielaktionen-Fenster
+startet mit 740 x 650 Pixeln (Mindestgroesse 620 x 570).
+Wird der Admin-Bereich aufgeklappt, waechst das
+Spielaktionen-Fenster auf 820 Pixel Hoehe; beim
+Zuklappen wieder auf 650 Pixel.
