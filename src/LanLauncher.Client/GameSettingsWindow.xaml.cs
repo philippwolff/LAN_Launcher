@@ -9,6 +9,8 @@ public partial class GameSettingsWindow : Window
 {
     private readonly string installFolder;
     private readonly string gameName;
+    private readonly List<GameLaunchOption> extraExecutables = new();
+    public IReadOnlyList<GameLaunchOption> AdditionalExecutables => extraExecutables;
     public string ExecutablePath { get; private set; } = "";
 
     public GameSettingsWindow(GameInfo game, LauncherSettings settings)
@@ -18,6 +20,9 @@ public partial class GameSettingsWindow : Window
         GameTitle.Text = game.Name + " (Version " + game.Version + ")";
         installFolder = GameExecutableFinder.GetInstallFolder(settings.InstallDirectory, game.Name);
         InstallFolderText.Text = "Installationsordner: " + installFolder;
+        if (settings.AdditionalExecutables.TryGetValue(game.Id, out var options))
+            extraExecutables.AddRange(options);
+        RefreshExtras();
         if (settings.InstalledExecutables.TryGetValue(game.Id, out var existing))
             ExecutablePathBox.Text = existing;
     }
@@ -48,6 +53,43 @@ public partial class GameSettingsWindow : Window
             return;
         }
         ExecutablePathBox.Text = detected;
+    }
+
+    private void RefreshExtras()
+    {
+        ExtraExecutablesList.ItemsSource = null;
+        ExtraExecutablesList.ItemsSource = extraExecutables;
+    }
+
+    private void AddExtra_Click(object sender, RoutedEventArgs e)
+    {
+        var picker = new OpenFileDialog
+        {
+            Title = "Zusätzliche Spiel-EXE auswählen",
+            Filter = "Anwendungen (*.exe)|*.exe",
+            CheckFileExists = true,
+            InitialDirectory = Directory.Exists(installFolder) ? installFolder :
+                Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles)
+        };
+        if (picker.ShowDialog(this) != true) return;
+        if (extraExecutables.Any(x => string.Equals(x.ExecutablePath, picker.FileName, StringComparison.OrdinalIgnoreCase)))
+        {
+            MessageBox.Show(this, "Diese EXE ist bereits als Startoption vorhanden.");
+            return;
+        }
+        var defaultName = Path.GetFileNameWithoutExtension(picker.FileName);
+        var name = Microsoft.VisualBasic.Interaction.InputBox(
+            "Anzeigename für diese Startoption:", "Startoption hinzufügen", defaultName).Trim();
+        if (string.IsNullOrWhiteSpace(name)) return;
+        extraExecutables.Add(new GameLaunchOption(name, picker.FileName));
+        RefreshExtras();
+    }
+
+    private void RemoveExtra_Click(object sender, RoutedEventArgs e)
+    {
+        if (ExtraExecutablesList.SelectedItem is not GameLaunchOption option) return;
+        extraExecutables.Remove(option);
+        RefreshExtras();
     }
 
     private void Save_Click(object sender, RoutedEventArgs e)
