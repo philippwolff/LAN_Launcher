@@ -15,6 +15,8 @@ public sealed class DownloadBandwidthLimiter
     private readonly Dictionary<long, Queue<(double Time, int Bytes)>> recentBytes = new();
     private readonly Stopwatch clock = Stopwatch.StartNew();
     public long BytesPerSecond { get; }
+    private volatile bool enabled = true;
+    public bool Enabled { get => enabled; set => enabled = value; }
 
     public DownloadBandwidthLimiter(long bytesPerSecond)
     {
@@ -79,6 +81,7 @@ public sealed class DownloadBandwidthLimiter
 
     public async Task WaitAsync(long id, int bytes, CancellationToken cancellationToken)
     {
+        if (!Enabled) return;
         double waitSeconds;
         lock (gate)
         {
