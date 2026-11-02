@@ -67,6 +67,63 @@ public sealed class ServerLibraryService
         }
     }
 
+    public string[] UnregisteredPackages()
+    {
+        lock (gate)
+        {
+            var catalogFile = Path.Combine(root, "games.json");
+            var games = File.Exists(catalogFile)
+                ? JsonSerializer.Deserialize<Dictionary<string, GameInfo>>(File.ReadAllText(catalogFile)) ?? new()
+                : new Dictionary<string, GameInfo>();
+            return Directory.GetFiles(Path.Combine(root, "Packages"))
+                .Where(p => Path.GetExtension(p).Equals(".zip", StringComparison.OrdinalIgnoreCase) ||
+                            Path.GetExtension(p).Equals(".exe", StringComparison.OrdinalIgnoreCase))
+                .Where(p => GamePackagePaths.IdFromFilename(p, games) is null)
+                .Select(Path.GetFileName).OfType<string>().OrderBy(n => n).ToArray();
+        }
+    }
+
+    public GameInfo RegisterPackage(string filename, string name, string version, string? description, GameTags tags)
+    {
+        tags = GameTagOptions.Validate(tags);
+        if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(version))
+            throw new ArgumentException("Name und Version sind erforderlich.");
+        if (Path.GetFileName(filename) != filename || Path.GetExtension(filename).ToLowerInvariant() is not (".zip" or ".exe"))
+            throw new ArgumentException("Ungültiger Paketname.");
+        lock (gate)
+        {
+            var path = Path.Combine(root, "Packages", filename);
+            if (!File.Exists(path)) throw new FileNotFoundException("Paket nicht gefunden.");
+            var catalogFile = Path.Combine(root, "games.json");
+            var games = File.Exists(catalogFile)
+                ? JsonSerializer.Deserialize<Dictionary<string, GameInfo>>(File.ReadAllText(catalogFile)) ?? new()
+                : new Dictionary<string, GameInfo>();
+            if (GamePackagePaths.IdFromFilename(filename, games) is not null)
+                throw new ArgumentException("Paket ist bereits registriert.");
+            var id = Guid.NewGuid().ToString("N");
+            var game = new GameInfo(id, name.Trim(), version.Trim(), description);
+            var target = Path.Combine(root, "Packages", GamePackagePaths.Filename(game, Path.GetExtension(filename).ToLowerInvariant()));
+            if (File.Exists(target)) throw new IOException("Zieldatei existiert bereits.");
+            File.Move(path, target);
+            try
+            {
+                games[id] = game;
+                var temp = catalogFile + ".tmp";
+                File.WriteAllText(temp, JsonSerializer.Serialize(games, new JsonSerializerOptions { WriteIndented = true }));
+                File.Move(temp, catalogFile, true);
+                var tagCatalog = new GameTagCatalog(new ConfigurationBuilder().AddInMemoryCollection(
+                    new Dictionary<string, string?> { ["StoragePath"] = root }).Build());
+                tagCatalog.Set(id, tags);
+            }
+            catch
+            {
+                // Never remove the package if metadata writing fails.
+                throw;
+            }
+            return game;
+        }
+    }
+
     public string Export()
     {
         lock (gate)
