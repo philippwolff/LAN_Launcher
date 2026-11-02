@@ -59,7 +59,9 @@ async function api(path,method='GET',data){
  if(data!==undefined)headers['Content-Type']='application/json';
  const res=await fetch(path,{method,headers,body:data===undefined?undefined:JSON.stringify(data),cache:'no-store'});
  if(!res.ok)throw new Error(res.status===401?'AdminKey fehlt oder ist ungültig.':await res.text()||'HTTP '+res.status);
- return res.status===204?null:res.json();
+ const body=await res.text();
+ if(!body.trim())return null;
+ try{return JSON.parse(body)}catch{throw new Error('Ungültige Serverantwort: '+body.slice(0,180))}
 }
 async function refresh(){
  if(refreshing)return;refreshing=true;
@@ -80,7 +82,7 @@ $('saveKey').onclick=()=>action(async()=>{
  const newKey=$('newKey').value;
  if(newKey.length<12||newKey.length>256)throw new Error('Der neue AdminKey benötigt 12 bis 256 Zeichen.');
  if(newKey!==$('confirmKey').value)throw new Error('Die neuen AdminKeys stimmen nicht überein.');
- await api('/api/admin/key/set','POST',{oldKey:$('key').value,newKey});
+ const result=await api('/api/admin/key/set','POST',{oldKey:$('key').value,newKey});
  $('key').value=newKey;$('newKey').value='';$('confirmKey').value='';
  notice('AdminKey gespeichert. Ab sofort gilt der neue Schlüssel.');await keyStatus();
 });
