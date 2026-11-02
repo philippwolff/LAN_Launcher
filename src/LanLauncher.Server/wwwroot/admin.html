@@ -38,7 +38,7 @@ label{display:block;margin:12px 0 4px}.checks{display:flex;flex-wrap:wrap;gap:10
  <p><small>Relativer Pfad zur Spiel-EXE innerhalb des installierten Spielordners, z. B. bin\\game.exe. Keine absoluten Pfade eingeben. Die Vorgabe wird vom Client beim ersten Start berücksichtigt.</small></p>
  <label for="launchGame">Spiel:</label><select id="launchGame" style="padding:8px;max-width:100%;width:100%"></select>
  <label for="launchPath">Start-EXE (relativer Pfad):</label><div class="row"><input id="launchPath" type="text" placeholder="game.exe oder bin\\game.exe" style="flex:1;min-width:220px">
- <button id="loadLaunchPath">Laden</button><button id="saveLaunchPath">Speichern</button></div></details>
+ <button id="loadLaunchPath">Laden</button><button id="saveLaunchPath">Speichern</button></div><label for="launchPath2">Zweite Start-EXE (optional):</label><input id="launchPath2" type="text" placeholder="Frozen Throne.exe" style="width:100%"><small>Bei zwei gültigen EXE-Dateien zeigt der Client beim Start eine Auswahl.</small></details>
  <table><thead><tr><th>Spiel</th><th>Version</th></tr></thead><tbody id="games"></tbody></table></section>
  <section class="panel"><div class="row space"><h2>Aktive Verbindungen</h2><span id="playerCount"></span></div>
  <table><thead><tr><th>Name</th><th>Status</th></tr></thead><tbody id="players"></tbody></table></section>
@@ -114,20 +114,21 @@ $('saveLibraryPath').onclick=()=>action(async()=>{
 });
 $('loadLaunchPath').onclick=()=>action(async()=>{
  const id=$('launchGame').value;if(!id)throw new Error('Bitte ein Spiel auswählen.');
- const res=await fetch('/api/games/'+encodeURIComponent(id)+'/launch-path',{cache:'no-store'});
+ const res=await fetch('/api/games/'+encodeURIComponent(id)+'/launch-options',{cache:'no-store'});
  if(res.status===404){$('launchPath').value='';notice('Für dieses Spiel ist noch keine Start-EXE hinterlegt.');return}
  if(!res.ok)throw new Error('Start-EXE konnte nicht geladen werden: HTTP '+res.status);
- const data=await res.json();$('launchPath').value=data.path||data.Path||'';
+ const data=await res.json();$('launchPath').value=data.paths?.[0]||'';$('launchPath2').value=data.paths?.[1]||'';
  notice('Gespeicherte Start-EXE geladen.');
 });
 $('saveLaunchPath').onclick=()=>action(async()=>{
  const id=$('launchGame').value,path=$('launchPath').value.trim();
  if(!id)throw new Error('Bitte ein Spiel auswählen.');
  if(!path)throw new Error('Bitte einen relativen EXE-Pfad eingeben.');
- await api('/api/admin/games/'+encodeURIComponent(id)+'/launch-path','PUT',{path});
+ const second=$('launchPath2').value.trim();
+ await api('/api/admin/games/'+encodeURIComponent(id)+'/launch-options','PUT',{paths:second?[path,second]:[path]});
  notice('Start-EXE gespeichert: '+path);
 });
-$('launchGame').onchange=()=>{$('launchPath').value='';};
+$('launchGame').onchange=()=>{$('launchPath').value='';$('launchPath2').value='';};
 $('folder').onclick=()=>action(async()=>{await api('/api/admin/dashboard/open-folder','POST');notice('Spieleordner wurde auf dem Server-PC geöffnet.')});
 $('stop').onclick=()=>action(async()=>{if(!confirm('Server wirklich stoppen? Alle Clients werden getrennt.'))return;await api('/api/admin/dashboard/stop','POST');notice('Server wird gestoppt. Zum erneuten Starten Server starten.cmd ausführen.')});
 for(let i=1;i<=16;i++){const label=document.createElement('label');const cb=document.createElement('input');cb.type='checkbox';cb.value=i;label.append(cb,document.createTextNode(' '+i));$('counts').append(label)}
