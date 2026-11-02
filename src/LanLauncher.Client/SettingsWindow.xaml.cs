@@ -14,6 +14,7 @@ public partial class SettingsWindow : Window
         Settings = current;
         InstallPathBox.Text = current.InstallDirectory;
         DownloadPathBox.Text = current.DownloadDirectory;
+        DarkModeCheckBox.IsChecked = current.DarkMode;
     }
 
     private void BrowseInstall_Click(object sender, RoutedEventArgs e) => Browse(InstallPathBox);
@@ -39,6 +40,7 @@ public partial class SettingsWindow : Window
             var updated = new LauncherSettings
             {
                 InstallDirectory = install,
+                DarkMode = DarkModeCheckBox.IsChecked == true,
                 DownloadDirectory = download,
                 LastOpenedGameId = Settings.LastOpenedGameId,
                 InstalledExecutables = new Dictionary<string, string>(Settings.InstalledExecutables),
