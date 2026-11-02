@@ -24,21 +24,28 @@ var tagCatalog = app.Services.GetRequiredService<GameTagCatalog>();
 var startNotices = app.Services.GetRequiredService<GameStartNoticeCatalog>();
 var modCatalog = app.Services.GetRequiredService<ModCatalog>();
 var libraryService = app.Services.GetRequiredService<ServerLibraryService>();
-var adminKey = Environment.GetEnvironmentVariable("LANLAUNCHER_AdminKey") ?? builder.Configuration["AdminKey"];
-if (string.IsNullOrWhiteSpace(adminKey))
-    Console.WriteLine("WARNUNG: Admin-Funktionen deaktiviert. AdminKey per Umgebungsvariable LANLAUNCHER_AdminKey setzen.");
+var adminKeys = new AdminKeyStore(builder.Configuration);
+if (!adminKeys.Configured)
+    Console.WriteLine("AdminKey noch nicht eingerichtet. Öffne http://localhost:8080/admin auf dem Server-PC.");
 
-bool IsAdmin(HttpRequest request)
-{
-    if (string.IsNullOrWhiteSpace(adminKey)) return false;
-    var supplied = request.Headers["X-Admin-Key"].ToString();
-    return CryptographicOperations.FixedTimeEquals(
-        SHA256.HashData(Encoding.UTF8.GetBytes(adminKey)),
-        SHA256.HashData(Encoding.UTF8.GetBytes(supplied)));
-}
+bool IsAdmin(HttpRequest request) => adminKeys.Verify(request.Headers["X-Admin-Key"].ToString());
 
 bool IsLocal(HttpContext context) =>
     context.Connection.RemoteIpAddress is { } ip && IPAddress.IsLoopback(ip);
+
+app.MapGet("/api/admin/key/status", (HttpContext context) =>
+    !IsLocal(context) ? Results.StatusCode(403) : Results.Ok(new { configured = adminKeys.Configured }));
+app.MapPost("/api/admin/key/set", (HttpContext context, SetAdminKeyRequest data) =>
+{
+    if (!IsLocal(context)) return Results.StatusCode(403);
+    try
+    {
+        return adminKeys.TrySet(data.OldKey, data.NewKey)
+            ? Results.Ok(new { status = "saved" })
+            : Results.Unauthorized();
+    }
+    catch (ArgumentException ex) { return Results.BadRequest(ex.Message); }
+});
 
 app.MapGet("/admin", (HttpContext context) =>
 {
@@ -242,3 +249,4 @@ public record LaunchPathRequest(string Path);
 public record GameStartNotice(string Text);
 
 public record RegisterPackageRequest(string FileName, string Name, string Version, string? Description, GameTags Tags);
+\npublic record SetAdminKeyRequest(string? OldKey, string NewKey);\n
