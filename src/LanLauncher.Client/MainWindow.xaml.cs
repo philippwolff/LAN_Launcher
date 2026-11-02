@@ -178,6 +178,22 @@ public partial class MainWindow : Window
         }
         catch (Exception ex) { serverConnected = false; ShowOfflineLibrary("Server nicht erreichbar – Offline-Modus: " + ex.Message); }
     }
+    private bool IsGameInstalled(GameInfo game)
+    {
+        if (settings.InstalledExecutables.TryGetValue(game.Id, out var exe) &&
+            !string.IsNullOrWhiteSpace(exe) && File.Exists(exe))
+            return true;
+        var folder = GameExecutableFinder.GetInstallFolder(settings.InstallDirectory, game.Name);
+        return GameExecutableFinder.FindBest(folder, game.Name) is not null;
+    }
+
+    private void UpdateSelectedGameActions()
+    {
+        var installed = GamesList.SelectedItem is GameInfo game && IsGameInstalled(game);
+        ActionStartButton.IsEnabled = installed;
+        ActionUninstallButton.IsEnabled = installed;
+    }
+
     private void SelectFirstGameIfNeeded()
     {
         if (GamesList.SelectedItem is not GameInfo && GamesList.Items.Count > 0)
@@ -186,11 +202,16 @@ public partial class MainWindow : Window
             SelectedGameTitle.Text = selected.Name + " (Version " + selected.Version + ")";
         else
             SelectedGameTitle.Text = "Kein Spiel ausgewählt";
+        UpdateSelectedGameActions();
     }
 
     private void RunSelectedGameAction(GameActionsWindow.GameAction action)
     {
-        if (GamesList.SelectedItem is GameInfo game) OpenGameActions(game, action);
+        if (GamesList.SelectedItem is GameInfo game)
+        {
+            if (action is GameActionsWindow.GameAction.Start or GameActionsWindow.GameAction.Uninstall && !IsGameInstalled(game)) return;
+            OpenGameActions(game, action);
+        }
     }
     private void ActionStart_Click(object sender, RoutedEventArgs e) => RunSelectedGameAction(GameActionsWindow.GameAction.Start);
     private void ActionInstall_Click(object sender, RoutedEventArgs e) => RunSelectedGameAction(GameActionsWindow.GameAction.Install);
@@ -207,6 +228,7 @@ public partial class MainWindow : Window
     {
         if (updatingGames || GamesList.SelectedItem is not GameInfo game) return;
         SelectedGameTitle.Text = game.Name + " (Version " + game.Version + ")";
+        UpdateSelectedGameActions();
     }
 
     private void GamesList_MouseDoubleClick(object sender, System.Windows.Input.MouseButtonEventArgs e)
