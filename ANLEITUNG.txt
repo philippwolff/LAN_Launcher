@@ -497,3 +497,10 @@ Katalogschluessel des Spiels, nicht eine laufende Nummer.
 Damit lassen sich Spiele und Pakete auf dem Server
 eindeutig zuordnen. Die ID bleibt auch offline sichtbar,
 sofern der lokale Katalogeintrag vorhanden ist.
+
+SMART APP CONTROL TEST DER SPIEL-ID-ANZEIGE:
+Die Spielebibliothek zeigt die ID nun ueber den bereits
+vorhandenen GameDisplayNameConverter an, ohne ein zusaetzliches
+XAML-Binding. Die ID im Spielaktionen-Fenster bleibt sichtbar.
+Dies ist eine alternative Implementierung, keine garantierte
+Freigabe durch Smart App Control.
