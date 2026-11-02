@@ -81,7 +81,8 @@ public partial class MainWindow : Window
         if (window.ShowDialog() == true)
         {
             settings = window.Settings;
-            StatusText.Text = "Standardordner gespeichert.";
+            ThemeManager.Apply(settings.DarkMode);
+            StatusText.Text = "Einstellungen gespeichert.";
         }
     }
     private readonly System.Collections.Generic.HashSet<TransferProgressWindow> activeTransfers = new();
@@ -123,7 +124,7 @@ public partial class MainWindow : Window
         timer.Tick += async (_, _) => await RefreshAsync();
         ShowOfflineLibrary("Offline – lokal installierte Spiele verfügbar");
         SelectFirstGameIfNeeded();
-        Loaded += async (_, _) => await CheckForUpdatesAsync();
+        Loaded += async (_, _) => { ThemeManager.Apply(settings.DarkMode); await CheckForUpdatesAsync(); };
     }
     private async void Connect_Click(object sender, RoutedEventArgs e)
     {
