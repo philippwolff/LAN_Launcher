@@ -2,9 +2,13 @@ name: Windows Client ZIP
 
 on:
   workflow_dispatch:
+    inputs:
+      release_tag:
+        description: 'Existing release tag to publish (e.g. v1.0.1); leave empty for test build'
+        required: false
+        type: string
   push:
     branches: [main]
-    tags: ['v*']
     paths:
       - 'src/LanLauncher.Client/**'
       - 'src/LanLauncher.Shared/**'
@@ -40,7 +44,7 @@ jobs:
         shell: pwsh
         run: |
           Set-Content -Path "publish/client/launcher-build.txt" -Value "${{ github.run_id }}" -NoNewline -Encoding ascii
-          Set-Content -Path "publish/client/launcher-version.txt" -Value "${{ github.ref_type == 'tag' && github.ref_name || 'development' }}" -NoNewline -Encoding ascii
+          $version = if ('${{ inputs.release_tag }}' -match '^v[0-9]+\\.[0-9]+\\.[0-9]+
 
       - name: Package ZIP
         shell: pwsh
@@ -55,10 +59,13 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
-      - name: Publish GitHub Release for version tags
-        if: startsWith(github.ref, 'refs/tags/v')
+      - name: Upload ZIP to existing GitHub Release
+        if: inputs.release_tag != ''
         env:
           GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ inputs.release_tag }}
         shell: pwsh
         run: |
-          gh release create "${{ github.ref_name }}" "LAN_Party_Client-win-x64.zip" --title "LAN Party Launcher ${{ github.ref_name }}" --generate-notes --verify-tag
+          if ($env:RELEASE_TAG -notmatch '^v[0-9]+\.[0-9]+\.[0-9]+$') { throw 'Release tag must look like v1.0.1' }
+          gh release view "$env:RELEASE_TAG" --repo "${{ github.repository }}" | Out-Null
+          gh release upload "$env:RELEASE_TAG" "LAN_Party_Client-win-x64.zip" --repo "${{ github.repository }}" --clobber
