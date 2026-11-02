@@ -829,6 +829,90 @@ public partial class MainWindow : Window
                         archive.ExtractToDirectory(targetFolder, overwriteFiles: false);
                     });
                     StatusText.Text = "Spiel entpackt nach: " + targetFolder;
+                    // Installer archives contain setup programs rather than an already playable game.
+                    // Let the user explicitly approve each executable, in a predictable order.
+                    var installers = Directory.GetFiles(targetFolder, "*.exe", SearchOption.AllDirectories)
+                        .Where(path =>
+                        {
+                            var name = Path.GetFileName(path);
+                            return name.StartsWith("setup", StringComparison.OrdinalIgnoreCase) ||
+                                   name.StartsWith("install", StringComparison.OrdinalIgnoreCase) ||
+                                   name.Contains("patch", StringComparison.OrdinalIgnoreCase) ||
+                                   name.Contains("fix", StringComparison.OrdinalIgnoreCase);
+                        })
+                        .OrderBy(path =>
+                        {
+                            var name = Path.GetFileName(path);
+                            return name.StartsWith("setup", StringComparison.OrdinalIgnoreCase) ||
+                                   name.StartsWith("install", StringComparison.OrdinalIgnoreCase) ? 0 : 1;
+                        })
+                        .ThenBy(path => path, StringComparer.OrdinalIgnoreCase)
+                        .ToArray();
+                    if (installers.Length > 0)
+                    {
+                        var confirmation = MessageBox.Show(this,
+                            "Dieses Paket enthält " + installers.Length + " Installationsprogramme.\\n\\n" +
+                            string.Join("\\n", installers.Select((path, index) =>
+                                (index + 1) + ". " + Path.GetRelativePath(targetFolder, path))) +
+                            "\\n\\nDie Programme werden einzeln und nacheinander gestartet. " +
+                            "Bitte jeden Assistenten vollständig abschließen, bevor der nächste startet.\\n\\n" +
+                            "Nur ausführen, wenn du den Dateien vertraust. Jetzt beginnen?",
+                            "Mehrstufige Spielinstallation", MessageBoxButton.YesNo,
+                            MessageBoxImage.Warning, MessageBoxResult.No);
+                        if (confirmation != MessageBoxResult.Yes)
+                        {
+                            StatusText.Text = "Installationsdateien entpackt nach: " + targetFolder;
+                            return;
+                        }
+                        for (var step = 0; step < installers.Length; step++)
+                        {
+                            var path = installers[step];
+                            var proceed = MessageBox.Show(this,
+                                "Schritt " + (step + 1) + " von " + installers.Length +
+                                "\\n\\n" + Path.GetRelativePath(targetFolder, path) +
+                                "\\n\\nDieses Installationsprogramm jetzt starten?",
+                                "Installation: " + game.Name, MessageBoxButton.YesNo,
+                                MessageBoxImage.Question, MessageBoxResult.No);
+                            if (proceed != MessageBoxResult.Yes)
+                            {
+                                StatusText.Text = "Installation unterbrochen. Dateien liegen in: " + targetFolder;
+                                return;
+                            }
+                            using var process = System.Diagnostics.Process.Start(
+                                new System.Diagnostics.ProcessStartInfo(path)
+                                {
+                                    UseShellExecute = true,
+                                    WorkingDirectory = Path.GetDirectoryName(path)!
+                                }) ?? throw new IOException("Installer konnte nicht gestartet werden: " + path);
+                            await process.WaitForExitAsync();
+                            if (process.ExitCode != 0)
+                            {
+                                var continueAfterError = MessageBox.Show(this,
+                                    "Der Installer meldete Exitcode " + process.ExitCode +
+                                    ".\\n\\nTrotzdem mit dem nächsten Schritt fortfahren?",
+                                    "Installer abgeschlossen", MessageBoxButton.YesNo,
+                                    MessageBoxImage.Warning, MessageBoxResult.No);
+                                if (continueAfterError != MessageBoxResult.Yes) return;
+                            }
+                        }
+                        var installedExe = new OpenFileDialog
+                        {
+                            Title = "Spiel-EXE nach der Installation auswählen",
+                            Filter = "Anwendungen (*.exe)|*.exe",
+                            CheckFileExists = true,
+                            InitialDirectory = Directory.Exists(targetFolder) ? targetFolder :
+                                settings.InstallDirectory
+                        };
+                        if (installedExe.ShowDialog(this) == true)
+                        {
+                            settings.InstalledExecutables[game.Id] = installedExe.FileName;
+                            settings.Save();
+                            StatusText.Text = "Mehrstufige Installation abgeschlossen: " + game.Name;
+                        }
+                        else
+                            StatusText.Text = "Installation abgeschlossen. Spiel-EXE bitte in den Einstellungen hinterlegen.";
+                        return;
+                    }
                     var executable = GameExecutableFinder.FindBest(targetFolder, game.Name);
                     if (executable is null)
                     {
