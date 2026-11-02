@@ -111,6 +111,15 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        try
+        {
+            var versionFile = Path.Combine(AppContext.BaseDirectory, "launcher-version.txt");
+            var version = File.Exists(versionFile) ? File.ReadAllText(versionFile).Trim() : "";
+            LauncherVersionText.Text = System.Text.RegularExpressions.Regex.IsMatch(version, @"^v[0-9]+\.[0-9]+\.[0-9]+$")
+                ? version : "Entwicklungsversion";
+        }
+        catch (IOException) { LauncherVersionText.Text = "Version unbekannt"; }
+        catch (UnauthorizedAccessException) { LauncherVersionText.Text = "Version unbekannt"; }
         timer.Tick += async (_, _) => await RefreshAsync();
         ShowOfflineLibrary("Offline – lokal installierte Spiele verfügbar");
         Loaded += async (_, _) => await CheckForUpdatesAsync();
