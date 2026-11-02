@@ -54,7 +54,7 @@ try {
                 "Copy-Item -LiteralPath (Join-Path $Source '*') -Destination $Destination -Recurse -Force",
                 "Get-ChildItem -LiteralPath $Source -Force | Copy-Item -Destination $Destination -Recurse -Force");
             await File.WriteAllTextAsync(script, scriptContent);
-            Process.Start(new ProcessStartInfo("powershell.exe")
+            _ = Process.Start(new ProcessStartInfo("powershell.exe")
             {
                 UseShellExecute = true,
                 ArgumentList = { "-NoProfile", "-ExecutionPolicy", "RemoteSigned", "-File", script,
