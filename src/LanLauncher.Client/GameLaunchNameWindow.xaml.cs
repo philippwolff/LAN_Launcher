@@ -10,7 +10,12 @@ public partial class GameLaunchNameWindow : Window
     {
         InitializeComponent();
         NameBox.Text = suggestedName;
-        Loaded += (_, _) => { NameBox.Focus(); NameBox.SelectAll(); };
+        Loaded += (_, _) =>
+        {
+            ThemeManager.Apply(LauncherSettings.Load().DarkMode);
+            NameBox.Focus();
+            NameBox.SelectAll();
+        };
     }
 
     private void Accept_Click(object sender, RoutedEventArgs e)
