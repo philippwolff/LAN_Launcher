@@ -24,7 +24,7 @@
 <DataTemplate>
 <StackPanel Orientation="Horizontal">
 <Image Source="{Binding Converter={StaticResource GameIconConverter}}" Width="18" Height="18" Margin="0,0,7,0" Stretch="Uniform"/>
-<TextBlock Text="{Binding Converter={StaticResource GameDisplayNameConverter}}" Foreground="#000000" FontSize="14" FontWeight="Bold" VerticalAlignment="Center"/>
+<TextBlock Text="{Binding Converter={StaticResource GameDisplayNameConverter}}" Foreground="#000000" FontSize="14" FontWeight="Bold" VerticalAlignment="Center"/><TextBlock Text="{Binding Id, StringFormat={}  [ID: {0}]}" Foreground="#444444" FontFamily="Consolas" FontSize="12" VerticalAlignment="Center" Margin="9,0,0,0"/>
 </StackPanel>
 </DataTemplate>
 </ListBox.ItemTemplate>
