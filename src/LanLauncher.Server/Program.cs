@@ -5,10 +5,20 @@ using System.Net.NetworkInformation;
 using System.Net.Sockets;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json;
 using LanLauncher.Shared;
 using LanLauncher.Server;
 
 var builder = WebApplication.CreateBuilder(args);
+var libraryLocationFile = Path.Combine(AppContext.BaseDirectory, "library-location.json");
+if (File.Exists(libraryLocationFile))
+{
+    using var savedLocation = JsonDocument.Parse(File.ReadAllText(libraryLocationFile));
+    var savedPath = savedLocation.RootElement.GetProperty("StoragePath").GetString();
+    if (!string.IsNullOrWhiteSpace(savedPath))
+        builder.Configuration["StoragePath"] = savedPath;
+}
+
 builder.WebHost.UseUrls(builder.Configuration["ListenUrl"] ?? "http://0.0.0.0:8080");
 builder.Services.AddSingleton<GameCatalog>();
 builder.Services.AddSingleton<GameTagCatalog>();
@@ -72,6 +82,50 @@ app.MapGet("/api/admin/dashboard", (HttpContext context) =>
             .Select(x => x.Player).OrderBy(x => x.Name).ToArray(),
         games = catalog.List() });
 });
+app.MapGet("/api/admin/library/location", (HttpContext context) =>
+{
+    if (!IsLocal(context)) return Results.StatusCode(403);
+    if (!IsAdmin(context.Request)) return Results.Unauthorized();
+    return Results.Ok(new { path = Path.GetFullPath(builder.Configuration["StoragePath"] ??
+        Path.Combine(AppContext.BaseDirectory, "Storage")) });
+});
+app.MapPost("/api/admin/library/location", (HttpContext context, LibraryLocationRequest data) =>
+{
+    if (!IsLocal(context)) return Results.StatusCode(403);
+    if (!IsAdmin(context.Request)) return Results.Unauthorized();
+    try
+    {
+        if (string.IsNullOrWhiteSpace(data.Path) || !Path.IsPathFullyQualified(data.Path))
+            return Results.BadRequest("Bitte einen absoluten Ordnerpfad angeben.");
+        var destination = Path.GetFullPath(data.Path.Trim());
+        Directory.CreateDirectory(destination);
+        var existing = Path.GetFullPath(builder.Configuration["StoragePath"] ??
+            Path.Combine(AppContext.BaseDirectory, "Storage"));
+        if (string.Equals(destination.TrimEnd(Path.DirectorySeparatorChar),
+            existing.TrimEnd(Path.DirectorySeparatorChar), StringComparison.OrdinalIgnoreCase))
+            return Results.Ok(new { path = destination, restartRequired = false });
+        if (Directory.EnumerateFileSystemEntries(destination).Any())
+            return Results.BadRequest("Der Zielordner muss leer sein. Bestehende Bibliotheken bitte vorab sichern und separat übernehmen.");
+        // Keep the original library untouched. Copy metadata and packages before switching.
+        foreach (var file in Directory.GetFiles(existing))
+            File.Copy(file, Path.Combine(destination, Path.GetFileName(file)));
+        foreach (var folder in Directory.GetDirectories(existing))
+        {
+            var name = Path.GetFileName(folder);
+            if (name.StartsWith("Backup-", StringComparison.OrdinalIgnoreCase)) continue;
+            CopyLibraryDirectory(folder, Path.Combine(destination, name));
+        }
+        var temp = libraryLocationFile + ".tmp";
+        File.WriteAllText(temp, JsonSerializer.Serialize(new { StoragePath = destination }));
+        File.Move(temp, libraryLocationFile, true);
+        return Results.Ok(new { path = destination, restartRequired = true });
+    }
+    catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException)
+    {
+        return Results.BadRequest("Speicherort konnte nicht geändert werden: " + ex.Message);
+    }
+});
+
 app.MapPost("/api/admin/dashboard/open-folder", (HttpContext context) =>
 {
     if (!IsLocal(context)) return Results.StatusCode(403);
@@ -251,3 +305,14 @@ public record GameStartNotice(string Text);
 public record RegisterPackageRequest(string FileName, string Name, string Version, string? Description, GameTags Tags);
 
 public record SetAdminKeyRequest(string? OldKey, string NewKey);
+
+static void CopyLibraryDirectory(string source, string target)
+{
+    Directory.CreateDirectory(target);
+    foreach (var file in Directory.GetFiles(source))
+        File.Copy(file, Path.Combine(target, Path.GetFileName(file)));
+    foreach (var folder in Directory.GetDirectories(source))
+        CopyLibraryDirectory(folder, Path.Combine(target, Path.GetFileName(folder)));
+}
+
+public record LibraryLocationRequest(string Path);
