@@ -24,6 +24,18 @@ internal static class ThemeManager
 
     private static SolidColorBrush Brush(string hex) => new((Color)ColorConverter.ConvertFromString(hex));
 
+    private static bool IsGameFilterChild(DependencyObject element)
+    {
+        for (var parent = VisualTreeHelper.GetParent(element); parent is not null;
+             parent = VisualTreeHelper.GetParent(parent))
+        {
+            if (parent is ComboBox combo &&
+                (combo.Name == "PlayerFilter" || combo.Name == "GenreFilter"))
+                return true;
+        }
+        return false;
+    }
+
     private static void ApplyChildren(DependencyObject parent, bool dark, Brush background,
         Brush input, Brush foreground, Brush border, Brush selection)
     {
@@ -60,6 +72,12 @@ internal static class ThemeManager
                     item.Background = item.IsSelected ? selection : input;
                     item.Foreground = foreground;
                 }
+            }
+            else if (child is TextBlock text && IsGameFilterChild(text))
+            {
+                // The selected ComboBox item is rendered by a TextBlock inside its template.
+                // Keep that text black even after theme changes and template regeneration.
+                text.Foreground = Brush("#000000");
             }
             else if (child is TextBlock text && !text.Name.Equals("LauncherVersionText", StringComparison.Ordinal))
             {
