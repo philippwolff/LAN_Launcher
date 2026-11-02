@@ -19,31 +19,60 @@ public partial class MainWindow : Window
     private bool updatingGames;
     private bool serverConnected;
 
+    private LauncherRelease? availableUpdate;
+    private bool checkingUpdates;
+
     private async Task CheckForUpdatesAsync()
     {
-        var result = await LauncherUpdateChecker.CheckAsync();
-        UpdateButton.Content = result.Available == true ? "Update verfügbar!" : "Updates prüfen";
-        UpdateButton.ToolTip = result.Details + "\nKlicken, um GitHub Actions zu öffnen.";
-        if (result.Available == true)
-            UpdateButton.FontWeight = FontWeights.Bold;
-    }
-
-    private void Update_Click(object sender, RoutedEventArgs e)
-    {
-        const string updatesUrl = "https://github.com/philippwolff/LAN_Launcher/actions/workflows/windows-client.yml";
+        if (checkingUpdates) return;
+        checkingUpdates = true;
         try
         {
-            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(updatesUrl)
+            var result = await LauncherUpdateChecker.CheckAsync();
+            availableUpdate = result.Available == true ? result.Release : null;
+            UpdateButton.Content = availableUpdate is not null ? "Update verfügbar!" : "Updates prüfen";
+            UpdateButton.ToolTip = result.Details;
+            UpdateButton.FontWeight = availableUpdate is not null ? FontWeights.Bold : FontWeights.Normal;
+        }
+        finally { checkingUpdates = false; }
+    }
+
+    private async void Update_Click(object sender, RoutedEventArgs e)
+    {
+        UpdateButton.IsEnabled = false;
+        try
+        {
+            await CheckForUpdatesAsync();
+            if (availableUpdate is null)
             {
-                UseShellExecute = true
-            });
-            StatusText.Text = "GitHub Actions geöffnet – neuesten erfolgreichen Windows Client ZIP-Build herunterladen.";
+                MessageBox.Show(this, UpdateButton.ToolTip?.ToString() ?? "Kein Update verfügbar.",
+                    "Launcher-Updates", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+            if (activeTransfers.Count > 0)
+            {
+                MessageBox.Show(this, "Bitte zuerst alle laufenden Downloads und Uploads abschließen.",
+                    "Update zurückgestellt", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+            var answer = MessageBox.Show(this,
+                "Neue Version: " + availableUpdate.Tag +
+                "\n\nDas Update wird heruntergeladen und anschließend der Launcher neu gestartet." +
+                "\nLaufende Spiele bitte vorher speichern und schließen." +
+                "\n\nJetzt installieren?",
+                "Launcher-Update verfügbar", MessageBoxButton.YesNo, MessageBoxImage.Question,
+                MessageBoxResult.No);
+            if (answer != MessageBoxResult.Yes) return;
+            StatusText.Text = "Launcher-Update wird heruntergeladen...";
+            await LauncherUpdateInstaller.InstallAsync(availableUpdate, Environment.ProcessId);
+            Close();
         }
         catch (Exception ex)
         {
-            MessageBox.Show(this, "Die Update-Seite konnte nicht geöffnet werden:\n" + updatesUrl +
-                "\n\n" + ex.Message, "Updates prüfen", MessageBoxButton.OK, MessageBoxImage.Warning);
+            MessageBox.Show(this, "Update konnte nicht installiert werden:\n" + ex.Message,
+                "Update fehlgeschlagen", MessageBoxButton.OK, MessageBoxImage.Error);
         }
+        finally { UpdateButton.IsEnabled = true; }
     }
 
     private void Settings_Click(object sender, RoutedEventArgs e)
