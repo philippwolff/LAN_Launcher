@@ -215,7 +215,7 @@ public partial class MainWindow : Window
                 is System.Windows.Controls.ListBoxItem &&
             GamesList.SelectedItem is GameInfo game)
         {
-            OpenGameActions(game);
+            StartGame(game);
             e.Handled = true;
         }
     }
