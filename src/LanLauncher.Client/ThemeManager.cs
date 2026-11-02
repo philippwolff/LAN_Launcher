@@ -48,6 +48,11 @@ internal static class ThemeManager
                     control.Background = input;
                 else if (control is Button or GroupBox or CheckBox or Expander)
                     control.Background = background;
+                if (control is ListBox installerList && installerList.Name == "InstallersList")
+                {
+                    installerList.Background = Brush("#FFFFFF");
+                    installerList.Foreground = Brush("#000000");
+                }
                 if (control is ComboBox combo && (combo.Name == "PlayerFilter" || combo.Name == "GenreFilter"))
                 {
                     // Filter boxes keep their light native background even in dark mode.
