@@ -249,4 +249,5 @@ public record LaunchPathRequest(string Path);
 public record GameStartNotice(string Text);
 
 public record RegisterPackageRequest(string FileName, string Name, string Version, string? Description, GameTags Tags);
-\npublic record SetAdminKeyRequest(string? OldKey, string NewKey);\n
+
+public record SetAdminKeyRequest(string? OldKey, string NewKey);
