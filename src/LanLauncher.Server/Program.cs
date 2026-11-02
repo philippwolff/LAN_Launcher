@@ -149,7 +149,17 @@ app.MapPost("/api/admin/dashboard/stop", (HttpContext context, IHostApplicationL
 {
     if (!IsLocal(context)) return Results.StatusCode(403);
     if (!IsAdmin(context.Request)) return Results.Unauthorized();
-    lifetime.StopApplication();
+    // Send the HTTP response before shutting down Kestrel, otherwise the browser
+    // can see a network error instead of a successful stop request.
+    context.Response.OnCompleted(() =>
+    {
+        _ = Task.Run(async () =>
+        {
+            await Task.Delay(250);
+            lifetime.StopApplication();
+        });
+        return Task.CompletedTask;
+    });
     return Results.Ok(new { status = "stopping" });
 });
 app.MapGet("/api/admin/dashboard/genres", (HttpContext context) =>
