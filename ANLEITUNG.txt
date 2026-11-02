@@ -559,3 +559,24 @@ manueller Link verfuegbar, eine automatische Benachrichtigung
 ist dann nicht moeglich. Fuer private Verteilung ohne Tokens
 wird spaeter ein eigener Update-Endpunkt auf dem LAN-Server
 benoetigt.
+
+AUTOMATISCHE UPDATES UEBER PUBLIC GITHUB RELEASES:
+Die vorherige Actions-Build-ID-Pruefung wurde durch einen
+Versionsvergleich gegen das neueste oeffentliche GitHub Release
+ersetzt. Versionen muessen als Git-Tag v1.0.0, v1.0.1 usw.
+auf main erstellt und gepusht werden. Der Windows-Client-Workflow
+baut dann die Version und veroeffentlicht das ZIP als Release.
+Nur diese getaggten Releases loesen Update-Hinweise aus;
+normale main-Commits bauen weiterhin lediglich Actions-Artefakte.
+Der Client enthaelt launcher-version.txt und prueft beim Start
+auf ein neueres Release. Beim Klick auf Update verfuegbar!
+fragt er vor dem Download und dem Neustart um Erlaubnis.
+Er startet ein externes PowerShell-Skript, das nach dem
+Beenden des Clients die Dateien aktualisiert und neu startet.
+Eine vorherige Client-Version ohne gueltige launcher-version.txt
+muss einmal manuell durch ein getaggtes Release ersetzt werden.
+Das Programmverzeichnis muss beschreibbar sein; Installation
+unter Program Files kann Adminrechte benoetigen.
+Der Updater ist noch nicht auf Windows getestet. Vor dem
+Verteilen zuerst mit einem Test-Release pruefen. Smart App
+Control kann neue Binaries weiterhin blockieren.
