@@ -50,7 +50,7 @@ public partial class GameActionsWindow : Window
         var expanded = AdminActionsPanel.Visibility != Visibility.Visible;
         AdminActionsPanel.Visibility = expanded ? Visibility.Visible : Visibility.Collapsed;
         AdminButton.Content = expanded ? "Admin ▲" : "Admin ▼";
-        Height = expanded ? 690 : 530;
+        Height = expanded ? 820 : 650;
     }
     private void Start_Click(object sender, RoutedEventArgs e) => Choose(GameAction.Start);
     private void Install_Click(object sender, RoutedEventArgs e) => Choose(GameAction.Install);
