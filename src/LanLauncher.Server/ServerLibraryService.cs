@@ -67,6 +67,28 @@ public sealed class ServerLibraryService
         }
     }
 
+    public string[] DiscoverUnregisteredPackages()
+    {
+        lock (gate)
+        {
+            var packageFolder = Path.Combine(root, "Packages");
+            var inboxFolder = Path.Combine(root, "Inbox");
+            Directory.CreateDirectory(inboxFolder);
+            // Files dropped into Inbox are copied into Packages for the registration form.
+            // Keep originals and never overwrite a different existing package.
+            foreach (var file in Directory.GetFiles(inboxFolder))
+            {
+                var ext = Path.GetExtension(file);
+                if (!ext.Equals(".zip", StringComparison.OrdinalIgnoreCase) &&
+                    !ext.Equals(".exe", StringComparison.OrdinalIgnoreCase)) continue;
+                var target = Path.Combine(packageFolder, Path.GetFileName(file));
+                if (!File.Exists(target))
+                    File.Copy(file, target);
+            }
+        }
+        return UnregisteredPackages();
+    }
+
     public string[] UnregisteredPackages()
     {
         lock (gate)
