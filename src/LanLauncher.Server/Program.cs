@@ -103,6 +103,13 @@ app.MapPost("/api/status", (StatusRequest req) =>
     players[req.ClientId] = (current.Player with { Status = req.Status, GameId = req.Status == "Im Spiel" ? req.GameId : null }, DateTimeOffset.UtcNow);
     return Results.Ok();
 });
+app.MapPost("/api/admin/library/sync", (HttpRequest req) =>
+{
+    if (!IsAdmin(req)) return Results.Unauthorized();
+    var result = libraryService.Check(true);
+    catalog.ReloadFromDisk();
+    return Results.Ok(result);
+});
 app.MapGet("/api/admin/library/check", (HttpRequest req) =>
     !IsAdmin(req) ? Results.Unauthorized() : Results.Ok(libraryService.Check(false)));
 app.MapPost("/api/admin/library/check", (HttpRequest req) =>
