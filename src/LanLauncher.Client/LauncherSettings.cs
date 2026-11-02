@@ -39,4 +39,5 @@ public sealed class LauncherSettings
         File.Move(temporary, SettingsFile, true);
     }
 }
-\npublic sealed record GameLaunchOption(string Name, string ExecutablePath);\n
+
+public sealed record GameLaunchOption(string Name, string ExecutablePath);
