@@ -36,7 +36,22 @@ internal static class ThemeManager
                     control.Background = input;
                 else if (control is Button or GroupBox or CheckBox or Expander)
                     control.Background = background;
-                if (control is not ListBoxItem)
+                if (control is ComboBox combo && (combo.Name == "PlayerFilter" || combo.Name == "GenreFilter"))
+                {
+                    // Filter boxes keep their light native background even in dark mode.
+                    // Force dark text on both the selection and generated dropdown items.
+                    combo.Background = Brush("#FFFFFF");
+                    combo.Foreground = Brush("#000000");
+                    combo.ItemContainerStyle = new Style(typeof(ComboBoxItem))
+                    {
+                        Setters =
+                        {
+                            new Setter(Control.ForegroundProperty, Brush("#000000")),
+                            new Setter(Control.BackgroundProperty, Brush("#FFFFFF"))
+                        }
+                    };
+                }
+                else if (control is not ListBoxItem)
                     control.Foreground = foreground;
                 if (control is Button or TextBox or PasswordBox or ListBox or ComboBox or GroupBox)
                     control.BorderBrush = border;
