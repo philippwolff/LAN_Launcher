@@ -1,7 +1,25 @@
 <Window x:Class="LanLauncher.Client.GameTestWindow" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" Title="Spieltest dokumentieren" Width="470" Height="240" MinWidth="420" ResizeMode="NoResize" WindowStartupLocation="CenterOwner" ShowInTaskbar="False" Loaded="Window_Loaded">
 <StackPanel Margin="18">
 <TextBlock Text="Testergebnis für dieses Spiel auf dem Server speichern:" TextWrapping="Wrap" Margin="0,0,0,14"/>
-<CheckBox x:Name="TestedBox" Content="Spiel getestet" Margin="0,0,0,12" Checked="Tested_Changed" Unchecked="Tested_Changed"/>
+<CheckBox x:Name="TestedBox" Content="Spiel getestet" Margin="0,0,0,12" Checked="Tested_Changed" Unchecked="Tested_Changed">
+<CheckBox.Template>
+<ControlTemplate TargetType="{x:Type CheckBox}">
+<StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+<Border x:Name="CheckBorder" Width="15" Height="15" Background="#343945" BorderBrush="#C9D0DB" BorderThickness="1" CornerRadius="2" Margin="0,0,7,0">
+<Path x:Name="WhiteCheck" Data="M 2,7 L 5.5,10.5 L 12,3" Stroke="White" StrokeThickness="2" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Visibility="Collapsed"/>
+</Border>
+<ContentPresenter VerticalAlignment="Center" RecognizesAccessKey="True"/>
+</StackPanel>
+<ControlTemplate.Triggers>
+<Trigger Property="IsChecked" Value="True">
+<Setter TargetName="CheckBorder" Property="Background" Value="#2358A9"/>
+<Setter TargetName="WhiteCheck" Property="Visibility" Value="Visible"/>
+</Trigger>
+<Trigger Property="IsEnabled" Value="False"><Setter Property="Opacity" Value="0.5"/></Trigger>
+</ControlTemplate.Triggers>
+</ControlTemplate>
+</CheckBox.Template>
+</CheckBox>
 <TextBlock Text="Betriebssystem:" Margin="0,0,0,5"/>
 <TextBox x:Name="OsBox" Margin="0,0,0,16"/>
 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
