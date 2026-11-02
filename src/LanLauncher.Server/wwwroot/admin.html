@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>LAN Party Server – Verwaltung</title>
+<style>
+:root{font-family:Tahoma,Arial,sans-serif;color:#f1f3f7;background:#242831}*{box-sizing:border-box}
+body{max-width:1240px;margin:auto;padding:20px}header{background:navy;padding:17px;display:flex;align-items:center;gap:15px;flex-wrap:wrap}
+h1{font-size:23px;margin:0}#version{font-size:12px;color:#cfd5ff}a{color:#b9caff}button{background:#d0d0d0;color:#222;border:2px outset #eee;padding:8px 12px;cursor:pointer}button:disabled{opacity:.5}
+.panel{background:#333946;padding:15px;margin-top:14px;border:1px solid #636d7d}
+.row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}.space{justify-content:space-between}
+.columns{display:grid;grid-template-columns:1fr 1fr;gap:14px}section{min-width:0}
+table{width:100%;border-collapse:collapse}th{text-align:left;background:#d0d0d0;color:#222}td,th{padding:8px;border-bottom:1px solid #555f70}
+input,textarea{background:#f5f5f5;color:#171717;border:1px solid #999;padding:8px;max-width:100%}
+label{display:block;margin:12px 0 4px}.checks{display:flex;flex-wrap:wrap;gap:10px;margin-top:7px}
+.checks label{margin:0;white-space:nowrap}#editor{border:1px solid #707b8b;padding:15px;margin-top:14px}
+#message{min-height:24px;color:#b9d7ff}small{color:#c0c6d0}dialog{background:#303746;color:white;border:1px solid #8e99aa;max-width:min(95vw,640px);width:100%;max-height:90vh;overflow:auto}
+@media(max-width:760px){.columns{grid-template-columns:1fr}}
+</style></head>
+<body>
+<header><h1>LAN PARTY SERVER</h1><span id="version">Entwicklungsversion</span><a href="https://github.com/philippwolff/LAN_Launcher/releases/latest" target="_blank" rel="noopener">Updates prüfen</a></header>
+<div class="panel">
+ <div class="row space"><div><strong id="status">Status: Wird geprüft …</strong><p id="address">LAN-IP wird ermittelt …</p></div>
+ <button id="stop">Server stoppen</button></div>
+ <div class="row"><label for="key">AdminKey:</label><input id="key" type="password" autocomplete="off" placeholder="AdminKey eingeben"><button id="check">Zugriff prüfen</button><small>Nur für diese Browserseite; nicht gespeichert</small></div>
+ <p id="message" role="status"></p>
+</div>
+<div class="columns">
+ <section class="panel"><div class="row space"><h2>Hochgeladene Spiele</h2><span id="gameCount"></span></div>
+ <div class="row"><button id="sync">Spiele synchronisieren</button><button id="folder">Spieleordner öffnen</button></div>
+ <table><thead><tr><th>Spiel</th><th>Version</th></tr></thead><tbody id="games"></tbody></table></section>
+ <section class="panel"><div class="row space"><h2>Aktive Verbindungen</h2><span id="playerCount"></span></div>
+ <table><thead><tr><th>Name</th><th>Status</th></tr></thead><tbody id="players"></tbody></table></section>
+</div>
+<dialog id="dialog"><h2>Neues Spiel registrieren</h2><p id="filename"></p>
+<form id="form">
+<label>Spielname *<input id="name" required maxlength="160" style="width:100%"></label>
+<label>Version *<input id="gameVersion" required maxlength="80" style="width:100%"></label>
+<label>Beschreibung<textarea id="description" rows="3" style="width:100%"></textarea></label>
+<p>Spieleranzahl (Mehrfachauswahl)</p><div class="checks" id="counts"></div>
+<p>Genres / Tags (Mehrfachauswahl)</p><div class="checks" id="genres"></div>
+<p class="row"><button type="button" id="skip">Überspringen</button><button type="submit">Spiel speichern</button></p>
+</form></dialog>
+<script>
+'use strict';
+const $=id=>document.getElementById(id);
+let pending=[],current=null,refreshing=false;
+function notice(msg){$('message').textContent=msg}
+function cell(row,text){const td=document.createElement('td');td.textContent=text??'';row.append(td)}
+function table(id,items,fields){const body=$(id);body.replaceChildren();for(const item of items){const tr=document.createElement('tr');for(const field of fields)cell(tr,item[field]);body.append(tr)}}
+async function api(path,method='GET',data){
+ const headers={'X-Admin-Key':$('key').value};
+ if(data!==undefined)headers['Content-Type']='application/json';
+ const res=await fetch(path,{method,headers,body:data===undefined?undefined:JSON.stringify(data),cache:'no-store'});
+ if(!res.ok)throw new Error(res.status===401?'AdminKey fehlt oder ist ungültig.':await res.text()||'HTTP '+res.status);
+ return res.status===204?null:res.json();
+}
+async function refresh(){
+ if(refreshing)return;refreshing=true;
+ try{
+  const data=await (await fetch('/api/admin/dashboard',{cache:'no-store'})).json();
+  $('status').textContent='Status: '+data.status;
+  $('address').textContent='LAN-IP: '+(data.addresses.join(', ')||'nicht gefunden')+' | Port: '+data.port;
+  $('version').textContent=data.version==='development'?'Entwicklungsversion':data.version;
+  $('gameCount').textContent=data.games.length+' Spiele';
+  $('playerCount').textContent=data.players.length+' Spieler online';
+  table('games',data.games,['name','version']);table('players',data.players,['name','status']);
+ }catch(e){$('status').textContent='Status: Nicht erreichbar'}
+ finally{refreshing=false}
+}
+async function action(fn){try{await fn()}catch(e){notice(e.message)}}
+$('check').onclick=()=>action(async()=>{await api('/api/admin/check');notice('AdminKey ist gültig.')});
+$('folder').onclick=()=>action(async()=>{await api('/api/admin/dashboard/open-folder','POST');notice('Spieleordner wurde auf dem Server-PC geöffnet.')});
+$('stop').onclick=()=>action(async()=>{if(!confirm('Server wirklich stoppen? Alle Clients werden getrennt.'))return;await api('/api/admin/dashboard/stop','POST');notice('Server wird gestoppt. Zum erneuten Starten Server starten.cmd ausführen.')});
+for(let i=1;i<=16;i++){const label=document.createElement('label');const cb=document.createElement('input');cb.type='checkbox';cb.value=i;label.append(cb,document.createTextNode(' '+i));$('counts').append(label)}
+async function initGenres(){try{const genres=await (await fetch('/api/admin/dashboard/genres')).json();for(const name of genres){const label=document.createElement('label');const cb=document.createElement('input');cb.type='checkbox';cb.value=name;label.append(cb,document.createTextNode(' '+name));$('genres').append(label)}}catch(e){notice('Genres konnten nicht geladen werden.')}}
+function nextPackage(){
+ current=pending.shift();
+ if(!current){$('dialog').close();refresh();notice('Synchronisierung abgeschlossen.');return}
+ $('filename').textContent='Paket: '+current;
+ const stem=current.replace(/\.(zip|exe)$/i,'');const split=stem.lastIndexOf('--');
+ $('name').value=split>=0?stem.slice(0,split):stem;
+ $('gameVersion').value='1.0';$('description').value='';
+ document.querySelectorAll('#dialog input[type=checkbox]').forEach(x=>x.checked=false);
+ if(!$('dialog').open)$('dialog').showModal();
+}
+$('sync').onclick=()=>action(async()=>{
+ pending=await api('/api/admin/library/pending');
+ if(!pending.length){notice('Alle gefundenen Pakete sind bereits registriert.');await refresh();return}
+ notice(pending.length+' neue Pakete gefunden. Bitte Spieldaten eingeben.');
+ nextPackage();
+});
+$('skip').onclick=nextPackage;
+$('form').onsubmit=async e=>{
+ e.preventDefault();
+ const data={fileName:current,name:$('name').value.trim(),version:$('gameVersion').value.trim(),
+ description:$('description').value, tags:{playerCounts:[...$('counts').querySelectorAll('input:checked')].map(x=>Number(x.value)),
+ genres:[...$('genres').querySelectorAll('input:checked')].map(x=>x.value)}};
+ try{await api('/api/admin/library/register','POST',data);nextPackage()}catch(error){notice(error.message)}
+};
+refresh();initGenres();setInterval(refresh,3000);
+</script></body></html>
