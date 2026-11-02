@@ -34,6 +34,11 @@ label{display:block;margin:12px 0 4px}.checks{display:flex;flex-wrap:wrap;gap:10
  <section class="panel"><div class="row space"><h2>Hochgeladene Spiele</h2><span id="gameCount"></span></div>
  <details style="margin:12px 0"><summary style="cursor:pointer">Speicherort der Spielebibliothek ändern</summary><p><small>Die vorhandene Bibliothek wird in einen neuen, leeren Ordner kopiert. Der bisherige Ordner bleibt als Sicherung erhalten. Danach den Server neu starten.</small></p><label for="libraryPath">Neuer Bibliotheksordner auf dem Server-PC:</label><div class="row"><input id="libraryPath" type="text" placeholder="D:\\LAN-Spiele" style="flex:1;min-width:220px"><button id="loadLibraryPath">Aktuellen Pfad anzeigen</button><button id="saveLibraryPath">Speicherort übernehmen</button></div></details>
  <div class="row"><button id="sync">Spiele synchronisieren</button><button id="folder">Spieleordner öffnen</button></div>
+ <details style="margin:12px 0"><summary style="cursor:pointer">Start-EXE eines Spiels festlegen</summary>
+ <p><small>Relativer Pfad zur Spiel-EXE innerhalb des installierten Spielordners, z. B. bin\\game.exe. Keine absoluten Pfade eingeben. Die Vorgabe wird vom Client beim ersten Start berücksichtigt.</small></p>
+ <label for="launchGame">Spiel:</label><select id="launchGame" style="padding:8px;max-width:100%;width:100%"></select>
+ <label for="launchPath">Start-EXE (relativer Pfad):</label><div class="row"><input id="launchPath" type="text" placeholder="game.exe oder bin\\game.exe" style="flex:1;min-width:220px">
+ <button id="loadLaunchPath">Laden</button><button id="saveLaunchPath">Speichern</button></div></details>
  <table><thead><tr><th>Spiel</th><th>Version</th></tr></thead><tbody id="games"></tbody></table></section>
  <section class="panel"><div class="row space"><h2>Aktive Verbindungen</h2><span id="playerCount"></span></div>
  <table><thead><tr><th>Name</th><th>Status</th></tr></thead><tbody id="players"></tbody></table></section>
@@ -73,6 +78,14 @@ async function refresh(){
   $('gameCount').textContent=data.games.length+' Spiele';
   $('playerCount').textContent=data.players.length+' Spieler online';
   table('games',data.games,['name','version']);table('players',data.players,['name','status']);
+  const selector=$('launchGame'),selected=selector.value;
+  const ids=data.games.map(g=>g.id).join('|');
+  if(selector.dataset.ids!==ids){
+   selector.replaceChildren();
+   for(const game of data.games){const option=document.createElement('option');option.value=game.id;option.textContent=game.name+' ('+game.version+')';selector.append(option)}
+   if(data.games.some(g=>g.id===selected))selector.value=selected;
+   selector.dataset.ids=ids;
+  }
  }catch(e){$('status').textContent='Status: Nicht erreichbar'}
  finally{refreshing=false}
 }
@@ -99,6 +112,22 @@ $('saveLibraryPath').onclick=()=>action(async()=>{
  const result=await api('/api/admin/library/location','POST',{path});
  notice(result.restartRequired?'Bibliothek kopiert. Bitte Server stoppen und über Server starten.cmd neu starten.':'Dieser Speicherort wird bereits verwendet.');
 });
+$('loadLaunchPath').onclick=()=>action(async()=>{
+ const id=$('launchGame').value;if(!id)throw new Error('Bitte ein Spiel auswählen.');
+ const res=await fetch('/api/games/'+encodeURIComponent(id)+'/launch-path',{cache:'no-store'});
+ if(res.status===404){$('launchPath').value='';notice('Für dieses Spiel ist noch keine Start-EXE hinterlegt.');return}
+ if(!res.ok)throw new Error('Start-EXE konnte nicht geladen werden: HTTP '+res.status);
+ const data=await res.json();$('launchPath').value=data.path||data.Path||'';
+ notice('Gespeicherte Start-EXE geladen.');
+});
+$('saveLaunchPath').onclick=()=>action(async()=>{
+ const id=$('launchGame').value,path=$('launchPath').value.trim();
+ if(!id)throw new Error('Bitte ein Spiel auswählen.');
+ if(!path)throw new Error('Bitte einen relativen EXE-Pfad eingeben.');
+ await api('/api/admin/games/'+encodeURIComponent(id)+'/launch-path','PUT',{path});
+ notice('Start-EXE gespeichert: '+path);
+});
+$('launchGame').onchange=()=>{$('launchPath').value='';};
 $('folder').onclick=()=>action(async()=>{await api('/api/admin/dashboard/open-folder','POST');notice('Spieleordner wurde auf dem Server-PC geöffnet.')});
 $('stop').onclick=()=>action(async()=>{if(!confirm('Server wirklich stoppen? Alle Clients werden getrennt.'))return;await api('/api/admin/dashboard/stop','POST');notice('Server wird gestoppt. Zum erneuten Starten Server starten.cmd ausführen.')});
 for(let i=1;i<=16;i++){const label=document.createElement('label');const cb=document.createElement('input');cb.type='checkbox';cb.value=i;label.append(cb,document.createTextNode(' '+i));$('counts').append(label)}
