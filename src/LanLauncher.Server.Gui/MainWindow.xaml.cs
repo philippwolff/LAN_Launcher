@@ -30,6 +30,89 @@ public partial class MainWindow : Window
         Closed += (_, _) => { refreshTimer.Stop(); http.Dispose(); serverProcess?.Dispose(); };
     }
 
+    private string GetStoragePath()
+    {
+        var configPath = Path.Combine(AppContext.BaseDirectory, "Server", "appsettings.json");
+        string? configured = null;
+        if (File.Exists(configPath))
+        {
+            using var json = JsonDocument.Parse(File.ReadAllText(configPath));
+            if (json.RootElement.TryGetProperty("StoragePath", out var property))
+                configured = property.GetString();
+        }
+        var root = string.IsNullOrWhiteSpace(configured)
+            ? Path.Combine(AppContext.BaseDirectory, "Server", "Storage")
+            : configured;
+        return Path.GetFullPath(Path.IsPathRooted(root) ? root : Path.Combine(AppContext.BaseDirectory, "Server", root));
+    }
+
+    private void OpenGamesFolder_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            var folder = Path.Combine(GetStoragePath(), "Packages");
+            Directory.CreateDirectory(folder);
+            Process.Start(new ProcessStartInfo("explorer.exe") { ArgumentList = { folder }, UseShellExecute = true });
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(this, ex.Message, "Spieleordner öffnen", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    private async void SyncGames_Click(object sender, RoutedEventArgs e)
+    {
+        SyncGamesButton.IsEnabled = false;
+        try
+        {
+            if (!await IsRunningAsync())
+            {
+                MessageBox.Show(this, "Bitte zuerst den Server starten.", "Spiele synchronisieren");
+                return;
+            }
+            var key = Environment.GetEnvironmentVariable("LANLAUNCHER_AdminKey");
+            if (string.IsNullOrWhiteSpace(key))
+            {
+                var configPath = Path.Combine(AppContext.BaseDirectory, "Server", "appsettings.json");
+                if (File.Exists(configPath))
+                {
+                    using var json = JsonDocument.Parse(File.ReadAllText(configPath));
+                    if (json.RootElement.TryGetProperty("AdminKey", out var property))
+                        key = property.GetString();
+                }
+            }
+            if (string.IsNullOrWhiteSpace(key))
+            {
+                MessageBox.Show(this, "Für die Synchronisierung muss ein AdminKey in Server/appsettings.json oder als Umgebungsvariable LANLAUNCHER_AdminKey konfiguriert sein.", "Administratorzugriff erforderlich");
+                return;
+            }
+            using var request = new HttpRequestMessage(HttpMethod.Post, BaseUrl + "/api/admin/library/sync");
+            request.Headers.Add("X-Admin-Key", key);
+            using var response = await http.SendAsync(request);
+            if (response.StatusCode == HttpStatusCode.Unauthorized)
+            {
+                MessageBox.Show(this, "AdminKey ungültig. Bitte Serverkonfiguration prüfen.", "Synchronisierung");
+                return;
+            }
+            response.EnsureSuccessStatusCode();
+            using var result = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+            var data = result.RootElement;
+            var recovered = data.GetProperty("recovered").GetInt32();
+            var missing = data.GetProperty("missingPackages").GetInt32();
+            await RefreshAsync();
+            MessageBox.Show(this,
+                recovered + " fehlende Spieleinträge aus vorhandenen Paketen wiederhergestellt.\n" +
+                missing + " registrierte Spiele ohne Paket gefunden.\n" +
+                "Wiederhergestellte Spiele erhalten vorläufige Namen und Versionen.",
+                "Synchronisierung abgeschlossen", MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+        catch (Exception ex) when (ex is IOException or HttpRequestException or TaskCanceledException or JsonException or UnauthorizedAccessException)
+        {
+            MessageBox.Show(this, ex.Message, "Synchronisierung fehlgeschlagen", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+        finally { SyncGamesButton.IsEnabled = true; }
+    }
+
     private void UpdateVersionLabel()
     {
         try
