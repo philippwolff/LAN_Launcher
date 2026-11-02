@@ -217,7 +217,7 @@ app.MapPost("/api/status", (StatusRequest req) =>
     return Results.Ok();
 });
 app.MapGet("/api/admin/library/pending", (HttpRequest req) =>
-    !IsAdmin(req) ? Results.Unauthorized() : Results.Ok(libraryService.UnregisteredPackages()));
+    !IsAdmin(req) ? Results.Unauthorized() : Results.Ok(libraryService.DiscoverUnregisteredPackages()));
 app.MapPost("/api/admin/library/register", (HttpRequest req, RegisterPackageRequest data) =>
 {
     if (!IsAdmin(req)) return Results.Unauthorized();
