@@ -8,7 +8,7 @@ public sealed class ServerLibraryService
 {
     private readonly string root;
     private readonly object gate = new();
-    private static readonly string[] Metadata = ["games.json", "game-tags.json", "launch-paths.json", "mod-configurations.json", "game-start-notices.json"];
+    private static readonly string[] Metadata = ["games.json", "game-tags.json", "launch-paths.json", "launch-options.json", "mod-configurations.json", "game-start-notices.json"];
 
     public ServerLibraryService(IConfiguration config)
     {
