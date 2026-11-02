@@ -12,6 +12,7 @@ on:
     paths:
       - 'src/LanLauncher.Client/**'
       - 'src/LanLauncher.Server/**'
+      - 'src/LanLauncher.Server.Gui/**'
       - 'src/LanLauncher.Shared/**'
       - '.github/workflows/windows-client.yml'
 
@@ -52,10 +53,28 @@ jobs:
           -p:PublishReadyToRun=false
           --output publish/server
 
+      - name: Publish server dashboard
+        shell: pwsh
+        run: >
+          dotnet publish src/LanLauncher.Server.Gui/LanLauncher.Server.Gui.csproj
+          --configuration Release
+          --runtime win-x64
+          --self-contained true
+          -p:PublishSingleFile=false
+          -p:PublishReadyToRun=false
+          --output publish/server-gui
+
+      - name: Bundle server and dashboard
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Path 'publish/server-package/Server' -Force | Out-Null
+          Copy-Item -Path 'publish/server/*' -Destination 'publish/server-package/Server' -Recurse -Force
+          Copy-Item -Path 'publish/server-gui/*' -Destination 'publish/server-package' -Recurse -Force
+
       - name: Package server ZIP
         shell: pwsh
         run: |
-          Compress-Archive -Path 'publish/server/*' -DestinationPath 'LAN_Party_Server-win-x64.zip' -Force
+          Compress-Archive -Path 'publish/server-package/*' -DestinationPath 'LAN_Party_Server-win-x64.zip' -Force
 
       - name: Upload server artifact
         uses: actions/upload-artifact@v4
