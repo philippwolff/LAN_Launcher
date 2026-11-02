@@ -918,9 +918,13 @@ public partial class MainWindow : Window
                 Directory.CreateDirectory(extractionFolder);
                 try
                 {
-                    await Task.Run(() =>
+                    var preparationWindow = new InstallationWaitWindow { Owner = this };
+                    preparationWindow.Show();
+                    try
                     {
-                        using var archive = System.IO.Compression.ZipFile.OpenRead(tempPackage);
+                        await Task.Run(() =>
+                        {
+                            using var archive = System.IO.Compression.ZipFile.OpenRead(tempPackage);
                         const long maxUncompressedBytes = 40L * 1024 * 1024 * 1024;
                         long totalSize = 0;
                         foreach (var entry in archive.Entries)
@@ -929,8 +933,13 @@ public partial class MainWindow : Window
                             if (totalSize > maxUncompressedBytes)
                                 throw new InvalidDataException("Archiv überschreitet die maximale entpackte Größe (40 GB).");
                         }
-                        archive.ExtractToDirectory(extractionFolder, overwriteFiles: false);
-                    });
+                            archive.ExtractToDirectory(extractionFolder, overwriteFiles: false);
+                        });
+                    }
+                    finally
+                    {
+                        preparationWindow.Close();
+                    }
                     StatusText.Text = "Installationspaket temporär entpackt.";
                     // Installer archives contain setup programs rather than an already playable game.
                     // Let the user explicitly approve each executable, in a predictable order.
@@ -953,20 +962,13 @@ public partial class MainWindow : Window
                         .ToArray();
                     if (installers.Length > 0)
                     {
-                        var confirmation = MessageBox.Show(this,
-                            "Dieses Paket enthält " + installers.Length + " Installationsprogramme.\n\n" +
-                            string.Join("\n", installers.Select((path, index) =>
-                                (index + 1) + ". " + Path.GetRelativePath(extractionFolder, path))) +
-                            "\n\nDie Programme werden einzeln und nacheinander gestartet. " +
-                            "Bitte jeden Assistenten vollständig abschließen, bevor der nächste startet.\n\n" +
-                            "Nur ausführen, wenn du den Dateien vertraust. Jetzt beginnen?",
-                            "Mehrstufige Spielinstallation", MessageBoxButton.YesNo,
-                            MessageBoxImage.Warning, MessageBoxResult.No);
-                        if (confirmation != MessageBoxResult.Yes)
+                        var orderWindow = new InstallerOrderWindow(extractionFolder, installers) { Owner = this };
+                        if (orderWindow.ShowDialog() != true)
                         {
                             StatusText.Text = "Installation abgebrochen. Temporäre Dateien werden entfernt.";
                             return;
                         }
+                        installers = orderWindow.OrderedInstallers;
                         for (var step = 0; step < installers.Length; step++)
                         {
                             var path = installers[step];
