@@ -78,7 +78,6 @@ public sealed class GameCatalog
         var game = new GameInfo(id, name.Trim(), version.Trim(), description);
         var target = Path.Combine(root, "Packages", GamePackagePaths.Filename(game, ext));
         using (var output = File.Create(target)) input.CopyTo(output);
-        var game = new GameInfo(id, name.Trim(), version.Trim(), description);
         lock (gate) { games[id] = game; Save(); }
         return game;
     }
