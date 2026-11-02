@@ -42,7 +42,9 @@ public partial class SettingsWindow : Window
                 DownloadDirectory = download,
                 LastOpenedGameId = Settings.LastOpenedGameId,
                 InstalledExecutables = new Dictionary<string, string>(Settings.InstalledExecutables),
-                InstallerTypes = new Dictionary<string, string>(Settings.InstallerTypes)
+                InstallerTypes = new Dictionary<string, string>(Settings.InstallerTypes),
+                KnownGames = new Dictionary<string, LanLauncher.Shared.GameInfo>(Settings.KnownGames),
+                DownloadedPackages = new Dictionary<string, string>(Settings.DownloadedPackages)
             };
             updated.Save();
             Settings = updated;
