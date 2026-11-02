@@ -23,6 +23,7 @@ builder.WebHost.UseUrls(builder.Configuration["ListenUrl"] ?? "http://0.0.0.0:80
 builder.Services.AddSingleton<GameCatalog>();
 builder.Services.AddSingleton<GameTagCatalog>();
 builder.Services.AddSingleton<GameStartNoticeCatalog>();
+builder.Services.AddSingleton<GameTestCatalog>();
 builder.Services.AddSingleton<ModCatalog>();
 builder.Services.AddSingleton<ServerLibraryService>();
 builder.WebHost.ConfigureKestrel(options => options.Limits.MaxRequestBodySize = 20L * 1024 * 1024 * 1024);
@@ -32,6 +33,7 @@ var players = new ConcurrentDictionary<string, (PlayerInfo Player, DateTimeOffse
 var catalog = app.Services.GetRequiredService<GameCatalog>();
 var tagCatalog = app.Services.GetRequiredService<GameTagCatalog>();
 var startNotices = app.Services.GetRequiredService<GameStartNoticeCatalog>();
+var gameTests = app.Services.GetRequiredService<GameTestCatalog>();
 var modCatalog = app.Services.GetRequiredService<ModCatalog>();
 var libraryService = app.Services.GetRequiredService<ServerLibraryService>();
 // Total bandwidth for all simultaneous game-package downloads, in MiB/s.
@@ -155,6 +157,15 @@ app.MapGet("/api/admin/dashboard/genres", (HttpContext context) =>
 
 app.MapGet("/api/health", () => Results.Ok(new { status = "ok", service = "LAN Launcher" }));
 app.MapGet("/api/games", () => Results.Ok(catalog.List()));
+app.MapGet("/api/games/{id}/test-status", (string id) =>
+    catalog.List().Any(g => g.Id == id) ? Results.Ok(gameTests.Get(id)) : Results.NotFound());
+app.MapPut("/api/admin/games/{id}/test-status", (HttpRequest req, string id, GameTestInfo info) =>
+{
+    if (!IsAdmin(req)) return Results.Unauthorized();
+    if (!catalog.List().Any(g => g.Id == id)) return Results.NotFound();
+    try { gameTests.Set(id, info); return Results.Ok(gameTests.Get(id)); }
+    catch (ArgumentException ex) { return Results.BadRequest(ex.Message); }
+});
 app.MapGet("/api/games/{id}/start-notice", (string id) =>
     catalog.List().Any(g => g.Id == id)
         ? Results.Ok(new GameStartNotice(startNotices.Get(id))) : Results.NotFound());
