@@ -11,6 +11,7 @@ public sealed class LauncherSettings
     public string? LastOpenedGameId { get; set; }
     public Dictionary<string, string> InstalledExecutables { get; set; } = new();
     public Dictionary<string, List<GameLaunchOption>> AdditionalExecutables { get; set; } = new();
+    public Dictionary<string, string> CompatibilityModes { get; set; } = new();
     public bool DarkMode { get; set; }
     public string InstallDirectory { get; set; } = @"C:\LAN_Launcher_Server\Games";
     public string DownloadDirectory { get; set; } = Path.Combine(
