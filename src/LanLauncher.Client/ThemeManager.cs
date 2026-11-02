@@ -69,8 +69,17 @@ internal static class ThemeManager
                     control.BorderBrush = border;
                 if (control is ListBoxItem item)
                 {
-                    item.Background = item.IsSelected ? selection : input;
-                    item.Foreground = foreground;
+                    if (ItemsControl.ItemsControlFromItemContainer(item) is ListBox list &&
+                        list.Name == "InstallersList")
+                    {
+                        item.Background = item.IsSelected ? Brush("#B7DFFF") : Brush("#FFFFFF");
+                        item.Foreground = Brush("#000000");
+                    }
+                    else
+                    {
+                        item.Background = item.IsSelected ? selection : input;
+                        item.Foreground = foreground;
+                    }
                 }
             }
             else if (child is TextBlock filterText && IsGameFilterChild(filterText))
