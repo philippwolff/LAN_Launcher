@@ -42,6 +42,18 @@ var downloadLimitMiBps = builder.Configuration.GetValue<double>("DownloadLimitMi
 if (!double.IsFinite(downloadLimitMiBps) || downloadLimitMiBps < 0.0625 || downloadLimitMiBps > 10240)
     throw new InvalidOperationException("DownloadLimitMiBps muss zwischen 0.0625 und 10240 liegen.");
 var downloadLimiter = new DownloadBandwidthLimiter((long)(downloadLimitMiBps * 1024 * 1024));
+// Store the administrator's bandwidth-sharing choice between server restarts.
+var bandwidthSettingsFile = Path.Combine(AppContext.BaseDirectory, "download-sharing.json");
+if (File.Exists(bandwidthSettingsFile))
+{
+    try
+    {
+        var saved = System.Text.Json.JsonSerializer.Deserialize<DownloadSharingSettings>(
+            File.ReadAllText(bandwidthSettingsFile));
+        if (saved is not null) downloadLimiter.Enabled = saved.Enabled;
+    }
+    catch (System.Text.Json.JsonException) { /* Ignore damaged settings; use safe default. */ }
+}
 var adminKeys = new AdminKeyStore(builder.Configuration);
 if (!adminKeys.Configured)
     Console.WriteLine("AdminKey noch nicht eingerichtet. Öffne http://localhost:8080/admin auf dem Server-PC.");
@@ -90,6 +102,27 @@ app.MapGet("/api/admin/dashboard", (HttpContext context) =>
             .Select(x => new { clientId = x.Key, name = x.Value.Player.Name, status = x.Value.Player.Status })
             .OrderBy(x => x.name).ToArray(),
         games = catalog.List() });
+});
+app.MapGet("/api/admin/download-sharing", (HttpContext context) =>
+{
+    if (!IsLocal(context)) return Results.StatusCode(403);
+    if (!IsAdmin(context.Request)) return Results.Unauthorized();
+    return Results.Ok(new { enabled = downloadLimiter.Enabled, limitMiBps = downloadLimitMiBps });
+});
+app.MapPut("/api/admin/download-sharing", (HttpContext context, DownloadSharingSettings settings) =>
+{
+    if (!IsLocal(context)) return Results.StatusCode(403);
+    if (!IsAdmin(context.Request)) return Results.Unauthorized();
+    try
+    {
+        var tmp = bandwidthSettingsFile + ".tmp";
+        File.WriteAllText(tmp, System.Text.Json.JsonSerializer.Serialize(settings));
+        File.Move(tmp, bandwidthSettingsFile, true);
+        downloadLimiter.Enabled = settings.Enabled;
+        return Results.Ok(new { enabled = downloadLimiter.Enabled });
+    }
+    catch (IOException ex) { return Results.Problem(ex.Message); }
+    catch (UnauthorizedAccessException ex) { return Results.Problem(ex.Message); }
 });
 app.MapGet("/api/admin/library/location", (HttpContext context) =>
 {
@@ -380,3 +413,5 @@ public record RegisterPackageRequest(string FileName, string Name, string Versio
 public record SetAdminKeyRequest(string? OldKey, string NewKey);
 
 public record LibraryLocationRequest(string Path);
+
+public sealed record DownloadSharingSettings(bool Enabled);
