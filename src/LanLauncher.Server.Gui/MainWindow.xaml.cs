@@ -1,6 +1,9 @@
 using System.Diagnostics;
 using System.IO;
 using System.Net.Http;
+using System.Net;
+using System.Net.NetworkInformation;
+using System.Net.Sockets;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Windows;
@@ -19,6 +22,7 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        UpdateLanAddress();
         refreshTimer.Tick += async (_, _) => await RefreshAsync();
         refreshTimer.Start();
         Loaded += async (_, _) => await RefreshAsync();
@@ -82,6 +86,25 @@ public partial class MainWindow : Window
         }
     }
 
+    private void UpdateLanAddress()
+    {
+        const int port = 8080;
+        var addresses = NetworkInterface.GetAllNetworkInterfaces()
+            .Where(n => n.OperationalStatus == OperationalStatus.Up &&
+                        n.NetworkInterfaceType != NetworkInterfaceType.Loopback &&
+                        n.NetworkInterfaceType != NetworkInterfaceType.Tunnel)
+            .SelectMany(n => n.GetIPProperties().UnicastAddresses
+                .Where(a => a.Address.AddressFamily == AddressFamily.InterNetwork)
+                .Select(a => a.Address))
+            .Where(a => !IPAddress.IsLoopback(a) && !a.ToString().StartsWith("169.254.", StringComparison.Ordinal))
+            .Distinct()
+            .ToArray();
+        AddressText.Text = addresses.Length == 0
+            ? "LAN-IP: nicht gefunden | Port: " + port
+            : "LAN-IP: " + string.Join(", ", addresses.Select(a => a.ToString())) +
+              " | Port: " + port;
+    }
+
     private async Task<bool> IsRunningAsync()
     {
         try
@@ -97,6 +120,7 @@ public partial class MainWindow : Window
     {
         try
         {
+            UpdateLanAddress();
             var online = await IsRunningAsync();
             StatusText.Text = online ? "Status: Online" : "Status: Gestoppt";
             StartButton.IsEnabled = !online;
