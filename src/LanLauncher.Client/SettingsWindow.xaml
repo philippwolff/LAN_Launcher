@@ -1,4 +1,4 @@
-<Window x:Class="LanLauncher.Client.SettingsWindow" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" Title="Einstellungen" Width="680" Height="330" MinWidth="590" MinHeight="300" WindowStartupLocation="CenterOwner" ResizeMode="CanResize">
+<Window x:Class="LanLauncher.Client.SettingsWindow" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" Title="Einstellungen" Width="680" Height="370" MinWidth="590" MinHeight="340" WindowStartupLocation="CenterOwner" ResizeMode="CanResize">
 <Grid Margin="18">
 <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
 <TextBlock Text="Standardordner" FontSize="16" FontWeight="Bold" Margin="0,0,0,16"/>
@@ -12,7 +12,7 @@
 <TextBox x:Name="DownloadPathBox" Grid.Column="1" VerticalContentAlignment="Center" Margin="0,0,10,0"/>
 <Button Grid.Column="2" Content="Durchsuchen …" Click="BrowseDownload_Click" Padding="5"/>
 </Grid>
-<StackPanel Grid.Row="3" Margin="0,14,0,0"><CheckBox x:Name="DarkModeCheckBox" Content="Dark Mode (dunkles Design)" VerticalAlignment="Center" Margin="0,0,0,12"/><StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,18,0,0">
+<StackPanel Grid.Row="3" Margin="0,14,0,0"><CheckBox x:Name="DarkModeCheckBox" Content="Dark Mode (dunkles Design)" VerticalAlignment="Center" Margin="0,0,0,12"/><CheckBox x:Name="AdminModeCheckBox" Content="Launcher beim nächsten Start als Administrator ausführen (Windows-UAC)" VerticalAlignment="Center" Margin="0,0,0,12"/><StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,18,0,0">
 <Button Content="Abbrechen" Width="105" Padding="6" Margin="0,0,10,0" Click="Cancel_Click"/>
 <Button Content="Speichern" Width="105" Padding="6" IsDefault="True" Click="Save_Click"/>
 </StackPanel></StackPanel>
