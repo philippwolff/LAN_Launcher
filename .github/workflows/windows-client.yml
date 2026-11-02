@@ -12,7 +12,6 @@ on:
     paths:
       - 'src/LanLauncher.Client/**'
       - 'src/LanLauncher.Server/**'
-      - 'src/LanLauncher.Server.Gui/**'
       - 'src/LanLauncher.Shared/**'
       - '.github/workflows/windows-client.yml'
 
@@ -53,23 +52,22 @@ jobs:
           -p:PublishReadyToRun=false
           --output publish/server
 
-      - name: Publish server dashboard
-        shell: pwsh
-        run: >
-          dotnet publish src/LanLauncher.Server.Gui/LanLauncher.Server.Gui.csproj
-          --configuration Release
-          --runtime win-x64
-          --self-contained true
-          -p:PublishSingleFile=false
-          -p:PublishReadyToRun=false
-          --output publish/server-gui
-
-      - name: Bundle server and dashboard
+      - name: Bundle server with browser administration
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Path 'publish/server-package/Server' -Force | Out-Null
           Copy-Item -Path 'publish/server/*' -Destination 'publish/server-package/Server' -Recurse -Force
-          Copy-Item -Path 'publish/server-gui/*' -Destination 'publish/server-package' -Recurse -Force
+          @'
+          @echo off
+          cd /d "%~dp0Server"
+          start "" "LanLauncher.Server.exe"
+          timeout /t 2 /nobreak >nul
+          start "" "http://localhost:8080/admin"
+          '@ | Set-Content -Path 'publish/server-package/Server starten.cmd' -Encoding ascii
+          @'
+          @echo off
+          start "" "http://localhost:8080/admin"
+          '@ | Set-Content -Path 'publish/server-package/Serververwaltung oeffnen.cmd' -Encoding ascii
 
       - name: Embed client and server build identity
         shell: pwsh
@@ -84,6 +82,7 @@ jobs:
           }
           Set-Content -Path 'publish/client/launcher-version.txt' -Value $version -NoNewline -Encoding ascii
           Set-Content -Path 'publish/server-package/launcher-version.txt' -Value $version -NoNewline -Encoding ascii
+          Set-Content -Path 'publish/server-package/Server/launcher-version.txt' -Value $version -NoNewline -Encoding ascii
 
       - name: Package server ZIP
         shell: pwsh
