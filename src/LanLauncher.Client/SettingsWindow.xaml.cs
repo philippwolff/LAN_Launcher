@@ -15,6 +15,7 @@ public partial class SettingsWindow : Window
         InstallPathBox.Text = current.InstallDirectory;
         DownloadPathBox.Text = current.DownloadDirectory;
         DarkModeCheckBox.IsChecked = current.DarkMode;
+        AdminModeCheckBox.IsChecked = current.RunAsAdministrator;
     }
 
     private void BrowseInstall_Click(object sender, RoutedEventArgs e) => Browse(InstallPathBox);
@@ -41,9 +42,12 @@ public partial class SettingsWindow : Window
             {
                 InstallDirectory = install,
                 DarkMode = DarkModeCheckBox.IsChecked == true,
+                RunAsAdministrator = AdminModeCheckBox.IsChecked == true,
                 DownloadDirectory = download,
                 LastOpenedGameId = Settings.LastOpenedGameId,
                 InstalledExecutables = new Dictionary<string, string>(Settings.InstalledExecutables),
+                AdditionalExecutables = Settings.AdditionalExecutables.ToDictionary(x => x.Key, x => x.Value.ToList()),
+                CompatibilityModes = new Dictionary<string, string>(Settings.CompatibilityModes),
                 InstallerTypes = new Dictionary<string, string>(Settings.InstallerTypes),
                 KnownGames = new Dictionary<string, LanLauncher.Shared.GameInfo>(Settings.KnownGames),
                 DownloadedPackages = new Dictionary<string, string>(Settings.DownloadedPackages)
