@@ -1,4 +1,8 @@
 using System.Collections.Concurrent;
+using System.Diagnostics;
+using System.Net;
+using System.Net.NetworkInformation;
+using System.Net.Sockets;
 using System.Security.Cryptography;
 using System.Text;
 using LanLauncher.Shared;
@@ -32,6 +36,54 @@ bool IsAdmin(HttpRequest request)
         SHA256.HashData(Encoding.UTF8.GetBytes(adminKey)),
         SHA256.HashData(Encoding.UTF8.GetBytes(supplied)));
 }
+
+bool IsLocal(HttpContext context) =>
+    context.Connection.RemoteIpAddress is { } ip && IPAddress.IsLoopback(ip);
+
+app.MapGet("/admin", (HttpContext context) =>
+{
+    if (!IsLocal(context)) return Results.StatusCode(403);
+    var file = Path.Combine(AppContext.BaseDirectory, "wwwroot", "admin.html");
+    return Results.File(file, "text/html; charset=utf-8");
+});
+app.MapGet("/api/admin/dashboard", (HttpContext context) =>
+{
+    if (!IsLocal(context)) return Results.StatusCode(403);
+    var addresses = NetworkInterface.GetAllNetworkInterfaces()
+        .Where(n => n.OperationalStatus == OperationalStatus.Up &&
+            n.NetworkInterfaceType != NetworkInterfaceType.Loopback &&
+            n.NetworkInterfaceType != NetworkInterfaceType.Tunnel)
+        .SelectMany(n => n.GetIPProperties().UnicastAddresses)
+        .Where(a => a.Address.AddressFamily == AddressFamily.InterNetwork &&
+            !a.Address.ToString().StartsWith("169.254.", StringComparison.Ordinal))
+        .Select(a => a.Address.ToString()).Distinct().ToArray();
+    var marker = Path.Combine(AppContext.BaseDirectory, "launcher-version.txt");
+    var version = File.Exists(marker) ? File.ReadAllText(marker).Trim() : "development";
+    return Results.Ok(new { status = "Online", port = new Uri(builder.Configuration["ListenUrl"] ?? "http://0.0.0.0:8080").Port,
+        addresses, version, players = players.Values
+            .Where(x => DateTimeOffset.UtcNow - x.Seen < TimeSpan.FromSeconds(45))
+            .Select(x => x.Player).OrderBy(x => x.Name).ToArray(),
+        games = catalog.List() });
+});
+app.MapPost("/api/admin/dashboard/open-folder", (HttpContext context) =>
+{
+    if (!IsLocal(context)) return Results.StatusCode(403);
+    if (!IsAdmin(context.Request)) return Results.Unauthorized();
+    var folder = Path.Combine(Path.GetFullPath(builder.Configuration["StoragePath"] ??
+        Path.Combine(AppContext.BaseDirectory, "Storage")), "Packages");
+    Directory.CreateDirectory(folder);
+    Process.Start(new ProcessStartInfo("explorer.exe") { ArgumentList = { folder }, UseShellExecute = true });
+    return Results.Ok();
+});
+app.MapPost("/api/admin/dashboard/stop", (HttpContext context, IHostApplicationLifetime lifetime) =>
+{
+    if (!IsLocal(context)) return Results.StatusCode(403);
+    if (!IsAdmin(context.Request)) return Results.Unauthorized();
+    lifetime.StopApplication();
+    return Results.Ok(new { status = "stopping" });
+});
+app.MapGet("/api/admin/dashboard/genres", (HttpContext context) =>
+    !IsLocal(context) ? Results.StatusCode(403) : Results.Ok(GameTagOptions.Genres));
 
 app.MapGet("/api/health", () => Results.Ok(new { status = "ok", service = "LAN Launcher" }));
 app.MapGet("/api/games", () => Results.Ok(catalog.List()));
