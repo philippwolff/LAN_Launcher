@@ -51,8 +51,9 @@ public sealed class DownloadBandwidthLimiter
             if (!nextSendSeconds.TryGetValue(id, out var next)) return;
             var now = clock.Elapsed.TotalSeconds;
             var duration = (double)bytes * nextSendSeconds.Count / BytesPerSecond;
-            waitSeconds = Math.Max(0, next - now);
-            nextSendSeconds[id] = Math.Max(now, next) + duration;
+            var scheduled = Math.Max(now, next) + duration;
+            waitSeconds = Math.Max(0, scheduled - now);
+            nextSendSeconds[id] = scheduled;
         }
         if (waitSeconds > 0)
             await Task.Delay(TimeSpan.FromSeconds(waitSeconds), cancellationToken);
