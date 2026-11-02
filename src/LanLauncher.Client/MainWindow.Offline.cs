@@ -14,7 +14,8 @@ public partial class MainWindow
                 !string.IsNullOrWhiteSpace(exe) && File.Exists(exe)) return true;
             var folder = GameExecutableFinder.GetInstallFolder(settings.InstallDirectory, game.Name);
             return GameExecutableFinder.FindBest(folder, game.Name) is not null;
-        }).OrderBy(g => g.Name, StringComparer.CurrentCultureIgnoreCase).ToArray();
+        }).Where(game => !settings.HiddenGameIds.Contains(game.Id))
+          .OrderBy(g => g.Name, StringComparer.CurrentCultureIgnoreCase).ToArray();
         GameDisplayNameConverter.LocalOnlyIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         GameNotInstalledConverter.ServerGameIds =
             localGames.Select(g => g.Id).ToHashSet(StringComparer.OrdinalIgnoreCase);
