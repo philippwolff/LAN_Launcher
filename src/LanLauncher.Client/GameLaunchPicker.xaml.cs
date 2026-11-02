@@ -12,6 +12,7 @@ public partial class GameLaunchPicker : Window
         Title = gameName + " – Startoption wählen";
         OptionsList.ItemsSource = options.ToArray();
         OptionsList.SelectedIndex = 0;
+        Loaded += (_, _) => ThemeManager.Apply(LauncherSettings.Load().DarkMode);
     }
     private void Start_Click(object sender, RoutedEventArgs e)
     {
