@@ -7,11 +7,11 @@ public partial class ModSettingsWindow : Window
 {
     public ModConfiguration? Configuration { get; private set; }
 
-    public ModSettingsWindow(GameInfo[] games, ModConfiguration? existing)
+    public ModSettingsWindow(GameInfo[] games, ModConfiguration? existing, string? preferredBaseGameId = null)
     {
         InitializeComponent();
         BaseGameBox.ItemsSource = games;
-        BaseGameBox.SelectedItem = games.FirstOrDefault(g => g.Id == existing?.BaseGameId);
+        BaseGameBox.SelectedItem = games.FirstOrDefault(g => g.Id == (preferredBaseGameId ?? existing?.BaseGameId));
         if (existing is not null)
         {
             LauncherBox.Text = existing.LauncherExe;
