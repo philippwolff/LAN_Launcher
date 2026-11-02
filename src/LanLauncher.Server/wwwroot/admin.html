@@ -41,7 +41,7 @@ label{display:block;margin:12px 0 4px}.checks{display:flex;flex-wrap:wrap;gap:10
  <button id="loadLaunchPath">Laden</button><button id="saveLaunchPath">Speichern</button></div><label for="launchPath2">Zweite Start-EXE (optional):</label><input id="launchPath2" type="text" placeholder="Frozen Throne.exe" style="width:100%"><small>Bei zwei gültigen EXE-Dateien zeigt der Client beim Start eine Auswahl.</small></details>
  <table><thead><tr><th>Spiel</th><th>Version</th></tr></thead><tbody id="games"></tbody></table></section>
  <section class="panel"><div class="row space"><h2>Aktive Verbindungen</h2><span id="playerCount"></span></div>
- <table><thead><tr><th>Name</th><th>Status</th></tr></thead><tbody id="players"></tbody></table></section>
+ <table><thead><tr><th>Name</th><th>Status</th><th>Downloadrate</th></tr></thead><tbody id="players"></tbody></table></section>
 </div>
 <dialog id="dialog"><h2>Neues Spiel registrieren</h2><p id="filename"></p>
 <form id="form">
@@ -77,7 +77,13 @@ async function refresh(){
   $('version').textContent=data.version==='development'?'Entwicklungsversion':data.version;
   $('gameCount').textContent=data.games.length+' Spiele';
   $('playerCount').textContent=data.players.length+' Spieler online';
-  table('games',data.games,['name','version']);table('players',data.players,['name','status']);
+  table('games',data.games,['name','version']);
+  const playerBody=$('players');playerBody.replaceChildren();
+  for(const player of data.players){
+   const tr=document.createElement('tr');cell(tr,player.name);cell(tr,player.status);
+   const rate=data.downloadRates?.[player.clientId]??0;
+   cell(tr,rate>0?(rate/1048576).toFixed(2)+' MiB/s':'–');playerBody.append(tr);
+  }
   const selector=$('launchGame'),selected=selector.value;
   const ids=data.games.map(g=>g.id).join('|');
   if(selector.dataset.ids!==ids){
