@@ -206,6 +206,7 @@ public partial class MainWindow : Window
             SelectedGameTitle.Text = "Kein Spiel ausgewählt";
         UpdateSelectedGameActions();
         _ = LoadSelectedGameStartNoticeAsync();
+        _ = LoadSelectedGameTestStatusAsync();
     }
 
     private void RunSelectedGameAction(GameActionsWindow.GameAction action)
@@ -270,6 +271,74 @@ public partial class MainWindow : Window
         SelectedGameTitle.Text = game.Name + " (Version " + game.Version + ")";
         UpdateSelectedGameActions();
         _ = LoadSelectedGameStartNoticeAsync();
+    }
+
+    private sealed record GameTestDisplay(bool Tested, string? OperatingSystem);
+
+    private async Task LoadSelectedGameTestStatusAsync()
+    {
+        var game = GamesList.SelectedItem as GameInfo;
+        if (game is null) { SelectedGameTestStatus.Text = "Kein Spiel ausgewählt."; return; }
+        if (!serverConnected || string.IsNullOrWhiteSpace(server))
+        {
+            SelectedGameTestStatus.Text = "Teststatus ohne Serververbindung nicht verfügbar.";
+            return;
+        }
+        var id = game.Id;
+        SelectedGameTestStatus.Text = "Teststatus wird geladen...";
+        try
+        {
+            var info = await http.GetFromJsonAsync<GameTestDisplay>(
+                server + "/api/games/" + Uri.EscapeDataString(id) + "/test-status");
+            if ((GamesList.SelectedItem as GameInfo)?.Id != id) return;
+            SelectedGameTestStatus.Text = info?.Tested == true
+                ? "Getestet – Betriebssystem: " + info.OperatingSystem
+                : "Noch nicht als getestet markiert.";
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or System.Text.Json.JsonException)
+        {
+            if ((GamesList.SelectedItem as GameInfo)?.Id == id)
+                SelectedGameTestStatus.Text = "Teststatus konnte nicht geladen werden.";
+        }
+    }
+
+    private async void ActionTestStatus_Click(object sender, RoutedEventArgs e)
+    {
+        if (GamesList.SelectedItem is not GameInfo game || !serverConnected || string.IsNullOrWhiteSpace(server))
+        {
+            MessageBox.Show(this, "Bitte zuerst mit dem Server verbinden.", "Spieltest");
+            return;
+        }
+        if (string.IsNullOrWhiteSpace(AdminKeyBox.Password))
+        {
+            MessageBox.Show(this, "Bitte den Admin-Schlüssel eingeben.", "Spieltest");
+            return;
+        }
+        try
+        {
+            var url = "/api/games/" + Uri.EscapeDataString(game.Id) + "/test-status";
+            var current = await http.GetFromJsonAsync<GameTestDisplay>(server + url);
+            var dialog = new GameTestWindow(current?.Tested == true,
+                current?.OperatingSystem ?? System.Runtime.InteropServices.RuntimeInformation.OSDescription)
+            { Owner = this };
+            if (dialog.ShowDialog() != true) return;
+            using var request = AdminRequest(HttpMethod.Put,
+                "/api/admin/games/" + Uri.EscapeDataString(game.Id) + "/test-status");
+            request.Content = JsonContent.Create(new GameTestDisplay(dialog.Tested, dialog.OperatingSystem));
+            using var response = await http.SendAsync(request);
+            if (!response.IsSuccessStatusCode)
+            {
+                MessageBox.Show(this, "Teststatus konnte nicht gespeichert werden: " +
+                    await response.Content.ReadAsStringAsync(), "Spieltest");
+                return;
+            }
+            await LoadSelectedGameTestStatusAsync();
+            StatusText.Text = "Teststatus für " + game.Name + " gespeichert.";
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(this, ex.Message, "Spieltest");
+        }
     }
 
     private sealed record GameNoticeDisplay(string? Text);
