@@ -205,6 +205,7 @@ public partial class MainWindow : Window
         else
             SelectedGameTitle.Text = "Kein Spiel ausgewählt";
         UpdateSelectedGameActions();
+        _ = LoadSelectedGameStartNoticeAsync();
     }
 
     private void RunSelectedGameAction(GameActionsWindow.GameAction action)
@@ -268,6 +269,40 @@ public partial class MainWindow : Window
         if (updatingGames || GamesList.SelectedItem is not GameInfo game) return;
         SelectedGameTitle.Text = game.Name + " (Version " + game.Version + ")";
         UpdateSelectedGameActions();
+        _ = LoadSelectedGameStartNoticeAsync();
+    }
+
+    private sealed record GameNoticeDisplay(string? Text);
+
+    private async Task LoadSelectedGameStartNoticeAsync()
+    {
+        var game = GamesList.SelectedItem as GameInfo;
+        if (game is null)
+        {
+            SelectedGameStartNotice.Text = "Kein Spiel ausgewählt.";
+            return;
+        }
+        if (!serverConnected || string.IsNullOrWhiteSpace(server))
+        {
+            SelectedGameStartNotice.Text = "Starthinweise sind ohne Serververbindung nicht verfügbar.";
+            return;
+        }
+        var selectedId = game.Id;
+        SelectedGameStartNotice.Text = "Starthinweise werden geladen...";
+        try
+        {
+            var notice = await http.GetFromJsonAsync<GameNoticeDisplay>(
+                server + "/api/games/" + Uri.EscapeDataString(selectedId) + "/start-notice");
+            if ((GamesList.SelectedItem as GameInfo)?.Id != selectedId) return;
+            SelectedGameStartNotice.Text = string.IsNullOrWhiteSpace(notice?.Text)
+                ? "Für dieses Spiel sind keine Starthinweise hinterlegt."
+                : notice.Text;
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or System.Text.Json.JsonException)
+        {
+            if ((GamesList.SelectedItem as GameInfo)?.Id == selectedId)
+                SelectedGameStartNotice.Text = "Starthinweise konnten nicht geladen werden.";
+        }
     }
 
     private void GamesList_MouseDoubleClick(object sender, System.Windows.Input.MouseButtonEventArgs e)
