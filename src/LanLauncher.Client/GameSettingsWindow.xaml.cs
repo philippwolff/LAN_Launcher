@@ -63,26 +63,37 @@ public partial class GameSettingsWindow : Window
 
     private void AddExtra_Click(object sender, RoutedEventArgs e)
     {
-        var picker = new OpenFileDialog
+        try
         {
-            Title = "Zusätzliche Spiel-EXE auswählen",
-            Filter = "Anwendungen (*.exe)|*.exe",
-            CheckFileExists = true,
-            InitialDirectory = Directory.Exists(installFolder) ? installFolder :
-                Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles)
-        };
-        if (picker.ShowDialog(this) != true) return;
-        if (extraExecutables.Any(x => string.Equals(x.ExecutablePath, picker.FileName, StringComparison.OrdinalIgnoreCase)))
-        {
-            MessageBox.Show(this, "Diese EXE ist bereits als Startoption vorhanden.");
-            return;
+            var picker = new OpenFileDialog
+            {
+                Title = "Zusätzliche Spiel-EXE auswählen",
+                Filter = "Anwendungen (*.exe)|*.exe",
+                CheckFileExists = true,
+                InitialDirectory = Directory.Exists(installFolder) ? installFolder :
+                    Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles)
+            };
+            if (picker.ShowDialog(this) != true) return;
+            var selectedPath = picker.FileName;
+            if (extraExecutables.Any(x => string.Equals(x.ExecutablePath, selectedPath, StringComparison.OrdinalIgnoreCase)))
+            {
+                MessageBox.Show(this, "Diese EXE ist bereits als Startoption vorhanden.");
+                return;
+            }
+
+            var nameDialog = new GameLaunchNameWindow(Path.GetFileNameWithoutExtension(selectedPath))
+            {
+                Owner = this
+            };
+            if (nameDialog.ShowDialog() != true) return;
+            extraExecutables.Add(new GameLaunchOption(nameDialog.OptionName, selectedPath));
+            RefreshExtras();
         }
-        var defaultName = Path.GetFileNameWithoutExtension(picker.FileName);
-        var name = Microsoft.VisualBasic.Interaction.InputBox(
-            "Anzeigename für diese Startoption:", "Startoption hinzufügen", defaultName).Trim();
-        if (string.IsNullOrWhiteSpace(name)) return;
-        extraExecutables.Add(new GameLaunchOption(name, picker.FileName));
-        RefreshExtras();
+        catch (Exception ex)
+        {
+            MessageBox.Show(this, "Die zusätzliche EXE konnte nicht hinzugefügt werden:\\n" + ex.Message,
+                "Fehler beim Hinzufügen", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
     }
 
     private void RemoveExtra_Click(object sender, RoutedEventArgs e)
