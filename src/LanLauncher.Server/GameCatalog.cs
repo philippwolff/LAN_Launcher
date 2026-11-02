@@ -132,6 +132,41 @@ public sealed class GameCatalog
         }
     }
 
+    public string[] GetLaunchPaths(string id)
+    {
+        lock (gate)
+        {
+            if (!games.ContainsKey(id)) return [];
+            var file = Path.Combine(root, "launch-options.json");
+            if (File.Exists(file))
+            {
+                var all = JsonSerializer.Deserialize<Dictionary<string, string[]>>(File.ReadAllText(file)) ?? new();
+                if (all.TryGetValue(id, out var paths) && paths.Length > 0) return paths;
+            }
+            return launchPaths.TryGetValue(id, out var single) ? [single] : [];
+        }
+    }
+
+    public void SetLaunchPaths(string id, string[] paths)
+    {
+        if (paths is null || paths.Length is < 1 or > 2 ||
+            paths.Any(path => string.IsNullOrWhiteSpace(path) || Path.IsPathRooted(path) ||
+                path.Split(new[] { '/', (char)92 }).Any(part => part is "." or ".." or "") ||
+                !path.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)) ||
+            paths.Distinct(StringComparer.OrdinalIgnoreCase).Count() != paths.Length)
+            throw new ArgumentException("Bitte ein oder zwei unterschiedliche relative EXE-Pfade angeben.");
+        lock (gate)
+        {
+            if (!games.ContainsKey(id)) throw new KeyNotFoundException("Spiel nicht gefunden.");
+            var file = Path.Combine(root, "launch-options.json");
+            var all = File.Exists(file) ? JsonSerializer.Deserialize<Dictionary<string, string[]>>(File.ReadAllText(file)) ?? new() : new();
+            all[id] = paths.Select(path => path.Replace('/', (char)92)).ToArray();
+            var tmp = file + ".tmp";
+            File.WriteAllText(tmp, JsonSerializer.Serialize(all, new JsonSerializerOptions { WriteIndented = true }));
+            File.Move(tmp, file, true);
+        }
+    }
+
     public bool Remove(string id)
     {
         lock (gate)
