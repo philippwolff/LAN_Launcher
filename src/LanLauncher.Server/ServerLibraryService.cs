@@ -33,12 +33,27 @@ public sealed class ServerLibraryService
             var recovered = 0;
             foreach (var package in packages)
             {
-                var id = Path.GetFileNameWithoutExtension(package);
-                if (games.ContainsKey(id)) continue;
+                var id = GamePackagePaths.IdFromFilename(package, games);
+                if (id is not null) continue;
                 if (!repair) continue;
-                games[id] = new GameInfo(id, "Wiederhergestellt - " + id, "Unbekannt",
+                var stem = Path.GetFileNameWithoutExtension(package);
+                var separator = stem.LastIndexOf("--", StringComparison.Ordinal);
+                var recoveredId = separator >= 0 ? stem[(separator + 2)..] : stem;
+                if (games.ContainsKey(recoveredId)) continue;
+                games[recoveredId] = new GameInfo(recoveredId, "Wiederhergestellt - " + recoveredId, "Unbekannt",
                     "Paket gefunden. Name und Version bitte administrativ prüfen.");
                 recovered++;
+            }
+            if (repair)
+            {
+                foreach (var game in games.Values)
+                {
+                    var oldPath = Path.Combine(packageDir, game.Id + ".zip");
+                    if (!File.Exists(oldPath)) oldPath = Path.Combine(packageDir, game.Id + ".exe");
+                    if (!File.Exists(oldPath)) continue;
+                    var newPath = Path.Combine(packageDir, GamePackagePaths.Filename(game, Path.GetExtension(oldPath)));
+                    if (!File.Exists(newPath)) File.Move(oldPath, newPath);
+                }
             }
             if (recovered > 0)
             {
@@ -46,11 +61,9 @@ public sealed class ServerLibraryService
                 File.WriteAllText(temp, JsonSerializer.Serialize(games, new JsonSerializerOptions { WriteIndented = true }));
                 File.Move(temp, catalogFile, true);
             }
-            var missing = games.Keys.Count(id =>
-                !File.Exists(Path.Combine(packageDir, id + ".zip")) &&
-                !File.Exists(Path.Combine(packageDir, id + ".exe")));
+            var missing = games.Keys.Count(id => GamePackagePaths.Find(packageDir, id) is null);
             return new LibraryCheckResult(games.Count, packages.Length, missing, recovered,
-                packages.Count(p => !games.ContainsKey(Path.GetFileNameWithoutExtension(p))));
+                packages.Count(p => GamePackagePaths.IdFromFilename(p, games) is null));
         }
     }
 
@@ -108,8 +121,7 @@ public sealed class ServerLibraryService
             {
                 if (!Guid.TryParseExact(id, "N", out _))
                     throw new InvalidDataException("Ungültige Spiel-ID im Katalog.");
-                if (!File.Exists(Path.Combine(staging, "Packages", id + ".zip")) &&
-                    !File.Exists(Path.Combine(staging, "Packages", id + ".exe")))
+                if (GamePackagePaths.Find(Path.Combine(staging, "Packages"), id) is null)
                     throw new InvalidDataException("Paket fehlt für Spiel-ID " + id);
             }
             foreach (var name in Metadata.Where(n => n != "games.json"))
