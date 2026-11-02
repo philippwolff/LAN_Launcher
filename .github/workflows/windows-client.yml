@@ -71,6 +71,20 @@ jobs:
           Copy-Item -Path 'publish/server/*' -Destination 'publish/server-package/Server' -Recurse -Force
           Copy-Item -Path 'publish/server-gui/*' -Destination 'publish/server-package' -Recurse -Force
 
+      - name: Embed client and server build identity
+        shell: pwsh
+        env:
+          RELEASE_TAG: ${{ inputs.release_tag }}
+          RUN_ID: ${{ github.run_id }}
+        run: |
+          Set-Content -Path 'publish/client/launcher-build.txt' -Value $env:RUN_ID -NoNewline -Encoding ascii
+          $version = 'development'
+          if ($env:RELEASE_TAG -match '^v[0-9]+[.][0-9]+[.][0-9]+$') {
+            $version = $env:RELEASE_TAG
+          }
+          Set-Content -Path 'publish/client/launcher-version.txt' -Value $version -NoNewline -Encoding ascii
+          Set-Content -Path 'publish/server-package/launcher-version.txt' -Value $version -NoNewline -Encoding ascii
+
       - name: Package server ZIP
         shell: pwsh
         run: |
@@ -83,19 +97,6 @@ jobs:
           path: LAN_Party_Server-win-x64.zip
           if-no-files-found: error
           retention-days: 30
-
-      - name: Embed build identity
-        shell: pwsh
-        env:
-          RELEASE_TAG: ${{ inputs.release_tag }}
-          RUN_ID: ${{ github.run_id }}
-        run: |
-          Set-Content -Path 'publish/client/launcher-build.txt' -Value $env:RUN_ID -NoNewline -Encoding ascii
-          $version = 'development'
-          if ($env:RELEASE_TAG -match '^v[0-9]+[.][0-9]+[.][0-9]+$') {
-            $version = $env:RELEASE_TAG
-          }
-          Set-Content -Path 'publish/client/launcher-version.txt' -Value $version -NoNewline -Encoding ascii
 
       - name: Package ZIP
         shell: pwsh
