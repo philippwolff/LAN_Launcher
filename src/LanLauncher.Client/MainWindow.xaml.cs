@@ -156,6 +156,7 @@ public partial class MainWindow : Window
             gamesResponse.EnsureSuccessStatusCode();
             var games = await gamesResponse.Content.ReadFromJsonAsync<GameInfo[]>() ?? [];
             var players = await http.GetFromJsonAsync<PlayerInfo[]>(server + "/api/players") ?? [];
+            RefreshUploadBaseGames(games);
             var selectedGameId = (GamesList.SelectedItem as GameInfo)?.Id;
             updatingGames = true;
             try
@@ -783,6 +784,19 @@ public partial class MainWindow : Window
         }
         catch (Exception ex) { StatusText.Text = ex.Message; }
     }
+    private void UploadAsMod_Changed(object sender, RoutedEventArgs e)
+    {
+        if (UploadBaseGameBox is not null)
+            UploadBaseGameBox.IsEnabled = UploadAsModBox.IsChecked == true;
+    }
+
+    private void RefreshUploadBaseGames(GameInfo[] games)
+    {
+        var selectedId = (UploadBaseGameBox.SelectedItem as GameInfo)?.Id;
+        UploadBaseGameBox.ItemsSource = games.OrderBy(g => g.Name).ToArray();
+        UploadBaseGameBox.SelectedItem = games.FirstOrDefault(g => g.Id == selectedId);
+    }
+
     private async void Upload_Click(object sender, RoutedEventArgs e)
     {
         if (server is null) { StatusText.Text = "Zuerst verbinden."; return; }
@@ -802,6 +816,21 @@ public partial class MainWindow : Window
             }
         }
         catch (Exception ex) { StatusText.Text = "Admin-Prüfung fehlgeschlagen: " + ex.Message; return; }
+        ModConfiguration? modConfiguration = null;
+        if (UploadAsModBox.IsChecked == true)
+        {
+            if (UploadBaseGameBox.SelectedItem is not GameInfo baseGame)
+            {
+                MessageBox.Show(this, "Bitte zuerst das Hauptspiel für den Mod auswählen.", "Mod hochladen");
+                return;
+            }
+            var modDialog = new ModSettingsWindow(
+                (UploadBaseGameBox.ItemsSource as IEnumerable<GameInfo> ?? []).ToArray(),
+                null, baseGame.Id) { Owner = this };
+            if (modDialog.ShowDialog() != true) return;
+            modConfiguration = modDialog.Configuration;
+            if (modConfiguration is null) return;
+        }
         var dialog = new OpenFileDialog { Filter = "Spielepakete (*.zip;*.exe)|*.zip;*.exe" };
         if (dialog.ShowDialog() != true) return;
         var popup = new TransferProgressWindow("Upload: " + Path.GetFileName(dialog.FileName)) { Owner = this };
@@ -828,7 +857,23 @@ public partial class MainWindow : Window
             if (response.IsSuccessStatusCode)
             {
                 var uploaded = await response.Content.ReadFromJsonAsync<GameInfo>();
-                if (uploaded is not null) await SaveTagsAsync(uploaded.Id, pendingTags);
+                if (uploaded is not null)
+                {
+                    await SaveTagsAsync(uploaded.Id, pendingTags);
+                    if (modConfiguration is not null)
+                    {
+                        using var modRequest = AdminRequest(HttpMethod.Put,
+                            "/api/admin/games/" + Uri.EscapeDataString(uploaded.Id) + "/mod");
+                        modRequest.Content = JsonContent.Create(modConfiguration);
+                        using var modResponse = await http.SendAsync(modRequest);
+                        if (!modResponse.IsSuccessStatusCode)
+                        {
+                            StatusText.Text = "Paket hochgeladen, aber Mod-Zuordnung fehlgeschlagen: " +
+                                await modResponse.Content.ReadAsStringAsync();
+                        }
+                        else StatusText.Text = "Mod hochgeladen und Hauptspiel zugeordnet.";
+                    }
+                }
                 pendingTags = new([], []);
                 await RefreshAsync();
             }
