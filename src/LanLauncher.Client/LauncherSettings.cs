@@ -14,6 +14,7 @@ public sealed class LauncherSettings
     public Dictionary<string, string> CompatibilityModes { get; set; } = new();
     public bool RunAsAdministrator { get; set; }
     public bool DarkMode { get; set; }
+    public HashSet<string> HiddenGameIds { get; set; } = new(StringComparer.OrdinalIgnoreCase);
     public string InstallDirectory { get; set; } = @"C:\LAN_Launcher_Server\Games";
     public string DownloadDirectory { get; set; } = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads");
