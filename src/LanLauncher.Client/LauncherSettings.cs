@@ -10,6 +10,7 @@ public sealed class LauncherSettings
     public Dictionary<string, LanLauncher.Shared.GameInfo> KnownGames { get; set; } = new();
     public string? LastOpenedGameId { get; set; }
     public Dictionary<string, string> InstalledExecutables { get; set; } = new();
+    public Dictionary<string, List<GameLaunchOption>> AdditionalExecutables { get; set; } = new();
     public bool DarkMode { get; set; }
     public string InstallDirectory { get; set; } = @"C:\LAN_Launcher_Server\Games";
     public string DownloadDirectory { get; set; } = Path.Combine(
@@ -38,3 +39,4 @@ public sealed class LauncherSettings
         File.Move(temporary, SettingsFile, true);
     }
 }
+\npublic sealed record GameLaunchOption(string Name, string ExecutablePath);\n
