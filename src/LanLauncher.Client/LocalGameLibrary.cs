@@ -23,6 +23,7 @@ internal static class LocalGameLibrary
         GameDisplayNameConverter.LocalOnlyIds = local.Select(g => g.Id)
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
         settings.Save();
-        return remote.Concat(local).OrderBy(g => g.Name, StringComparer.CurrentCultureIgnoreCase).ToArray();
+        return remote.Concat(local).Where(g => !settings.HiddenGameIds.Contains(g.Id))
+            .OrderBy(g => g.Name, StringComparer.CurrentCultureIgnoreCase).ToArray();
     }
 }
