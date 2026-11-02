@@ -1,4 +1,5 @@
 using System.IO;
+using System.Diagnostics;
 using System.Windows;
 using Microsoft.Win32;
 
@@ -16,6 +17,7 @@ public partial class SettingsWindow : Window
         DownloadPathBox.Text = current.DownloadDirectory;
         DarkModeCheckBox.IsChecked = current.DarkMode;
         AdminModeCheckBox.IsChecked = current.RunAsAdministrator;
+        UpdateRestartVisibility();
     }
 
     private void BrowseInstall_Click(object sender, RoutedEventArgs e) => Browse(InstallPathBox);
@@ -29,6 +31,11 @@ public partial class SettingsWindow : Window
     }
 
     private void Save_Click(object sender, RoutedEventArgs e)
+    {
+        if (TrySaveSettings()) DialogResult = true;
+    }
+
+    private bool TrySaveSettings()
     {
         try
         {
@@ -54,12 +61,48 @@ public partial class SettingsWindow : Window
             };
             updated.Save();
             Settings = updated;
-            DialogResult = true;
+            return true;
         }
         catch (Exception ex)
         {
             MessageBox.Show(this, "Einstellungen konnten nicht gespeichert werden:\n" + ex.Message,
                 "Ungültiger Ordner", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return false;
+        }
+    }
+
+    private void AdminMode_Changed(object sender, RoutedEventArgs e) => UpdateRestartVisibility();
+
+    private void UpdateRestartVisibility()
+    {
+        if (RestartButton is not null)
+            RestartButton.Visibility = AdminModeCheckBox.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    private void Restart_Click(object sender, RoutedEventArgs e)
+    {
+        if (!TrySaveSettings()) return;
+        try
+        {
+            var executable = Environment.ProcessPath
+                ?? throw new InvalidOperationException("Der Pfad zum Launcher ist nicht verfügbar.");
+            Process.Start(new ProcessStartInfo(executable)
+            {
+                UseShellExecute = true,
+                Verb = "runas",
+                WorkingDirectory = AppContext.BaseDirectory
+            });
+            Application.Current.Shutdown();
+        }
+        catch (System.ComponentModel.Win32Exception ex) when (ex.NativeErrorCode == 1223)
+        {
+            MessageBox.Show(this, "Die Administratoranfrage wurde abgebrochen. Die Einstellungen wurden gespeichert.",
+                "Neustart abgebrochen", MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(this, "Der Neustart war nicht möglich. Die Einstellungen wurden gespeichert.\\n" + ex.Message,
+                "Neustart fehlgeschlagen", MessageBoxButton.OK, MessageBoxImage.Warning);
         }
     }
 
