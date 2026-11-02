@@ -73,11 +73,11 @@ internal static class ThemeManager
                     item.Foreground = foreground;
                 }
             }
-            else if (child is TextBlock text && IsGameFilterChild(text))
+            else if (child is TextBlock filterText && IsGameFilterChild(filterText))
             {
                 // The selected ComboBox item is rendered by a TextBlock inside its template.
                 // Keep that text black even after theme changes and template regeneration.
-                text.Foreground = Brush("#000000");
+                filterText.Foreground = Brush("#000000");
             }
             else if (child is TextBlock text && !text.Name.Equals("LauncherVersionText", StringComparison.Ordinal))
             {
