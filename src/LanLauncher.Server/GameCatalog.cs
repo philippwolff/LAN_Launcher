@@ -29,6 +29,18 @@ public sealed class GameCatalog
             : new();
     }
 
+    public void ReloadFromDisk()
+    {
+        lock (gate)
+        {
+            var loaded = File.Exists(metadataPath)
+                ? JsonSerializer.Deserialize<Dictionary<string, GameInfo>>(File.ReadAllText(metadataPath)) ?? new()
+                : new Dictionary<string, GameInfo>();
+            games.Clear();
+            foreach (var entry in loaded) games[entry.Key] = entry.Value;
+        }
+    }
+
     public GameInfo[] List()
     {
         lock (gate)
