@@ -1,5 +1,6 @@
 using System.IO;
 using System.Windows;
+using System.Windows.Controls;
 using Microsoft.Win32;
 using LanLauncher.Shared;
 
@@ -9,6 +10,17 @@ public partial class GameSettingsWindow : Window
 {
     private readonly string installFolder;
     private readonly string gameName;
+    private bool loadingCompatibility;
+    private readonly Dictionary<string, string> compatibility = new(StringComparer.OrdinalIgnoreCase);
+    public IReadOnlyDictionary<string, string> CompatibilityModes => compatibility;
+    private static readonly (string Name, string Mode)[] Modes =
+    {
+        ("Windows-Standard (kein Kompatibilitätsmodus)", ""),
+        ("Windows 8", "WIN8RTM"), ("Windows 7", "WIN7RTM"),
+        ("Windows Vista SP2", "VISTASP2"), ("Windows Vista", "VISTARTM"),
+        ("Windows XP SP3", "WINXPSP3"), ("Windows XP SP2", "WINXPSP2"),
+        ("Windows 98 / ME", "WIN98"), ("Windows 95", "WIN95")
+    };
     private readonly List<GameLaunchOption> extraExecutables = new();
     public IReadOnlyList<GameLaunchOption> AdditionalExecutables => extraExecutables;
     public string ExecutablePath { get; private set; } = "";
@@ -22,9 +34,13 @@ public partial class GameSettingsWindow : Window
         InstallFolderText.Text = "Installationsordner: " + installFolder;
         if (settings.AdditionalExecutables.TryGetValue(game.Id, out var options))
             extraExecutables.AddRange(options);
+        foreach (var item in settings.CompatibilityModes) compatibility[item.Key] = item.Value;
+        CompatModeBox.ItemsSource = Modes.Select(x => x.Name).ToArray();
         RefreshExtras();
         if (settings.InstalledExecutables.TryGetValue(game.Id, out var existing))
             ExecutablePathBox.Text = existing;
+        ExecutablePathBox.TextChanged += (_, _) => RefreshCompatibilityExecutables();
+        RefreshCompatibilityExecutables();
     }
 
     private void Browse_Click(object sender, RoutedEventArgs e)
@@ -59,6 +75,41 @@ public partial class GameSettingsWindow : Window
     {
         ExtraExecutablesList.ItemsSource = null;
         ExtraExecutablesList.ItemsSource = extraExecutables;
+        RefreshCompatibilityExecutables();
+    }
+
+    private void RefreshCompatibilityExecutables()
+    {
+        if (CompatExeBox is null || CompatModeBox is null || ExecutablePathBox is null) return;
+        loadingCompatibility = true;
+        var old = (CompatExeBox.SelectedItem as GameLaunchOption)?.ExecutablePath;
+        var options = new List<GameLaunchOption>();
+        if (!string.IsNullOrWhiteSpace(ExecutablePathBox.Text))
+            options.Add(new GameLaunchOption("Hauptspiel", ExecutablePathBox.Text.Trim()));
+        options.AddRange(extraExecutables);
+        CompatExeBox.ItemsSource = options;
+        CompatExeBox.SelectedItem = options.FirstOrDefault(x => x.ExecutablePath == old) ?? options.FirstOrDefault();
+        loadingCompatibility = false;
+        CompatExe_SelectionChanged(null!, null!);
+    }
+
+    private void CompatExe_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (loadingCompatibility || CompatModeBox is null) return;
+        loadingCompatibility = true;
+        var path = (CompatExeBox.SelectedItem as GameLaunchOption)?.ExecutablePath;
+        var mode = path is not null && compatibility.TryGetValue(path, out var saved) ? saved : "";
+        var index = Array.FindIndex(Modes, x => x.Mode == mode);
+        CompatModeBox.SelectedIndex = index < 0 ? 0 : index;
+        loadingCompatibility = false;
+    }
+
+    private void CompatMode_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (loadingCompatibility || CompatExeBox?.SelectedItem is not GameLaunchOption option || CompatModeBox.SelectedIndex < 0) return;
+        var mode = Modes[CompatModeBox.SelectedIndex].Mode;
+        if (mode.Length == 0) compatibility.Remove(option.ExecutablePath);
+        else compatibility[option.ExecutablePath] = mode;
     }
 
     private void AddExtra_Click(object sender, RoutedEventArgs e)
