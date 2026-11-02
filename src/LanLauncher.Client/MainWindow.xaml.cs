@@ -175,10 +175,25 @@ public partial class MainWindow : Window
         }
         catch (Exception ex) { serverConnected = false; ShowOfflineLibrary("Server nicht erreichbar – Offline-Modus: " + ex.Message); }
     }
+    private void RunSelectedGameAction(GameActionsWindow.GameAction action)
+    {
+        if (GamesList.SelectedItem is GameInfo game) OpenGameActions(game, action);
+    }
+    private void ActionStart_Click(object sender, RoutedEventArgs e) => RunSelectedGameAction(GameActionsWindow.GameAction.Start);
+    private void ActionInstall_Click(object sender, RoutedEventArgs e) => RunSelectedGameAction(GameActionsWindow.GameAction.Install);
+    private void ActionLocalInstall_Click(object sender, RoutedEventArgs e) => RunSelectedGameAction(GameActionsWindow.GameAction.LocalInstall);
+    private void ActionDownload_Click(object sender, RoutedEventArgs e) => RunSelectedGameAction(GameActionsWindow.GameAction.Download);
+    private void ActionUninstall_Click(object sender, RoutedEventArgs e) => RunSelectedGameAction(GameActionsWindow.GameAction.Uninstall);
+    private void ActionSettings_Click(object sender, RoutedEventArgs e) => RunSelectedGameAction(GameActionsWindow.GameAction.Settings);
+    private void ActionDelete_Click(object sender, RoutedEventArgs e) => RunSelectedGameAction(GameActionsWindow.GameAction.Delete);
+    private void ActionMod_Click(object sender, RoutedEventArgs e) => RunSelectedGameAction(GameActionsWindow.GameAction.Mod);
+    private void ActionNotice_Click(object sender, RoutedEventArgs e) => RunSelectedGameAction(GameActionsWindow.GameAction.Notice);
+    private void ActionTags_Click(object sender, RoutedEventArgs e) => RunSelectedGameAction(GameActionsWindow.GameAction.Tags);
+
     private void GamesList_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
     {
         if (updatingGames || GamesList.SelectedItem is not GameInfo game) return;
-        OpenGameActions(game);
+        SelectedGameTitle.Text = game.Name + " (Version " + game.Version + ")";
     }
 
     private void GamesList_MouseDoubleClick(object sender, System.Windows.Input.MouseButtonEventArgs e)
@@ -193,7 +208,7 @@ public partial class MainWindow : Window
         }
     }
 
-    private async void OpenGameActions(GameInfo game)
+    private async void OpenGameActions(GameInfo game, GameActionsWindow.GameAction? directAction = null)
     {
         settings.LastOpenedGameId = game.Id;
         try { settings.Save(); }
@@ -231,18 +246,19 @@ public partial class MainWindow : Window
             }
             catch (Exception) { /* Old server versions may not support tags yet. */ }
         }
-        if (popup.ShowDialog() != true) return;
+        if (directAction is null && popup.ShowDialog() != true) return;
+        var selectedAction = directAction ?? popup.SelectedAction;
         if (serverConnected && GameDisplayNameConverter.LocalOnlyIds.Contains(game.Id) &&
-            (popup.SelectedAction == GameActionsWindow.GameAction.Install ||
-             popup.SelectedAction == GameActionsWindow.GameAction.LocalInstall ||
-             popup.SelectedAction == GameActionsWindow.GameAction.Download ||
-             popup.SelectedAction == GameActionsWindow.GameAction.Delete))
+            (selectedAction == GameActionsWindow.GameAction.Install ||
+             selectedAction == GameActionsWindow.GameAction.LocalInstall ||
+             selectedAction == GameActionsWindow.GameAction.Download ||
+             selectedAction == GameActionsWindow.GameAction.Delete))
         {
             MessageBox.Show(this, "Das Spiel ist nur lokal verfügbar und nicht mehr auf dem Server.",
                 "Nur lokal verfügbar", MessageBoxButton.OK, MessageBoxImage.Information);
             return;
         }
-        switch (popup.SelectedAction)
+        switch (selectedAction)
         {
             case GameActionsWindow.GameAction.Start:
                 StartGame(game);
