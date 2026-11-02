@@ -867,7 +867,7 @@ public partial class MainWindow : Window
             {
                 using var downloadClient = new HttpClient { Timeout = Timeout.InfiniteTimeSpan };
                 using var response = await downloadClient.GetAsync(
-                    server + "/api/games/" + Uri.EscapeDataString(game.Id) + "/package",
+                    server + "/api/games/" + Uri.EscapeDataString(game.Id) + "/package?clientId=" + Uri.EscapeDataString(clientId),
                     HttpCompletionOption.ResponseHeadersRead, popup.Cancellation);
                 response.EnsureSuccessStatusCode();
     
