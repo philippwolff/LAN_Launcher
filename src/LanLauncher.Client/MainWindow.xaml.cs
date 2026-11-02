@@ -219,7 +219,7 @@ public partial class MainWindow : Window
     {
         if (GamesList.SelectedItem is not GameInfo game) return;
         if (MessageBox.Show(this,
-                "Den Bibliothekseintrag \"" + game.Name + "\" ausblenden?\\n\\n" +
+                "Den Bibliothekseintrag \"" + game.Name + "\" ausblenden?\n\n" +
                 "Das Spiel und seine Dateien werden nicht gelöscht. Du kannst den Eintrag jederzeit wiederherstellen.",
                 "Spiel ausblenden", MessageBoxButton.YesNo, MessageBoxImage.Question,
                 MessageBoxResult.No) != MessageBoxResult.Yes) return;
@@ -241,9 +241,9 @@ public partial class MainWindow : Window
         var names = settings.HiddenGameIds.Select(id =>
             settings.KnownGames.TryGetValue(id, out var game) ? game.Name : id);
         if (MessageBox.Show(this,
-                "Folgende Einträge wieder einblenden?\\n\\n" +
-                string.Join("\\n", names) +
-                "\\n\\nEs werden keine Dateien verändert.",
+                "Folgende Einträge wieder einblenden?\n\n" +
+                string.Join("\n", names) +
+                "\n\nEs werden keine Dateien verändert.",
                 "Ausgeblendete Spiele", MessageBoxButton.YesNo, MessageBoxImage.Question,
                 MessageBoxResult.No) != MessageBoxResult.Yes) return;
         settings.HiddenGameIds.Clear();
