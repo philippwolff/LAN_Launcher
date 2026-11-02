@@ -42,9 +42,16 @@ jobs:
 
       - name: Embed build identity
         shell: pwsh
+        env:
+          RELEASE_TAG: ${{ inputs.release_tag }}
+          RUN_ID: ${{ github.run_id }}
         run: |
-          Set-Content -Path "publish/client/launcher-build.txt" -Value "${{ github.run_id }}" -NoNewline -Encoding ascii
-          $version = if ('${{ inputs.release_tag }}' -match '^v[0-9]+\\.[0-9]+\\.[0-9]+
+          Set-Content -Path 'publish/client/launcher-build.txt' -Value $env:RUN_ID -NoNewline -Encoding ascii
+          $version = 'development'
+          if ($env:RELEASE_TAG -match '^v[0-9]+[.][0-9]+[.][0-9]+$') {
+            $version = $env:RELEASE_TAG
+          }
+          Set-Content -Path 'publish/client/launcher-version.txt' -Value $version -NoNewline -Encoding ascii
 
       - name: Package ZIP
         shell: pwsh
