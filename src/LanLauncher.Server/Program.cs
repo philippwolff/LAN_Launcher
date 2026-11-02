@@ -188,4 +188,5 @@ public record ImportGameRequest(string FileName, string Name, string Version, st
 public record LaunchPathRequest(string Path);
 
 public record GameStartNotice(string Text);
-\npublic record RegisterPackageRequest(string FileName, string Name, string Version, string? Description, GameTags Tags);\n
+
+public record RegisterPackageRequest(string FileName, string Name, string Version, string? Description, GameTags Tags);
