@@ -11,7 +11,8 @@ public sealed class GameDisplayNameConverter : IValueConverter
     public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
     {
         if (value is not GameInfo game) return "";
-        return LocalOnlyIds.Contains(game.Id) ? game.Name + " (nur lokal verfügbar)" : game.Name;
+        var name = LocalOnlyIds.Contains(game.Id) ? game.Name + " (nur lokal verfügbar)" : game.Name;
+        return name + " [ID: " + game.Id + "]";
     }
 
     public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) =>
