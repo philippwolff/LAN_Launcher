@@ -1,4 +1,4 @@
-<Application x:Class="LanLauncher.Client.App" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" StartupUri="MainWindow.xaml">
+<Application x:Class="LanLauncher.Client.App" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" Startup="Application_Startup">
 <Application.Resources>
     <!-- Classic Windows 98 inspired desktop palette and bevels. -->
     <SolidColorBrush x:Key="Win98Face" Color="#C0C0C0"/>
