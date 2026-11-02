@@ -20,6 +20,9 @@ public partial class InstallerOrderWindow : Window
         if (entries.Count > 0) InstallersList.SelectedIndex = 0;
     }
 
+    private void Window_Loaded(object sender, RoutedEventArgs e) =>
+        ThemeManager.Apply(LauncherSettings.Load().DarkMode);
+
     private void InstallersList_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         UpButton.IsEnabled = InstallersList.SelectedIndex > 0;
