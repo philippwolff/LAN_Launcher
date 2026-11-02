@@ -184,7 +184,9 @@ public partial class MainWindow : Window
             !string.IsNullOrWhiteSpace(exe) && File.Exists(exe))
             return true;
         var folder = GameExecutableFinder.GetInstallFolder(settings.InstallDirectory, game.Name);
-        return GameExecutableFinder.FindBest(folder, game.Name) is not null;
+        if (GameExecutableFinder.FindBest(folder, game.Name) is not null) return true;
+        return settings.AdditionalExecutables.TryGetValue(game.Id, out var extras) &&
+            extras.Any(x => File.Exists(x.ExecutablePath));
     }
 
     private void UpdateSelectedGameActions()
@@ -435,6 +437,11 @@ public partial class MainWindow : Window
             settings.InstalledExecutables.Remove(game.Id);
         else
             settings.InstalledExecutables[game.Id] = window.ExecutablePath;
+        if (window.AdditionalExecutables.Count == 0)
+            settings.AdditionalExecutables.Remove(game.Id);
+        else
+            settings.AdditionalExecutables[game.Id] = window.AdditionalExecutables.ToList();
+        UpdateSelectedGameActions();
         try
         {
             settings.Save();
@@ -488,6 +495,23 @@ public partial class MainWindow : Window
                 settings.Save();
             }
         }
+        var launchOptions = new List<GameLaunchOption>();
+        if (!string.IsNullOrWhiteSpace(executable) && File.Exists(executable))
+            launchOptions.Add(new GameLaunchOption("Hauptspiel", executable));
+        if (settings.AdditionalExecutables.TryGetValue(game.Id, out var extras))
+            launchOptions.AddRange(extras.Where(x => File.Exists(x.ExecutablePath)));
+        if (launchOptions.Count == 0)
+        {
+            StatusText.Text = "Keine gültige Spiel-EXE vorhanden.";
+            return;
+        }
+        if (launchOptions.Count > 1)
+        {
+            var picker = new GameLaunchPicker(game.Name, launchOptions) { Owner = this };
+            if (picker.ShowDialog() != true || picker.SelectedOption is null) return;
+            executable = picker.SelectedOption.ExecutablePath;
+        }
+        else executable = launchOptions[0].ExecutablePath;
         try
         {
             var process = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(executable)
