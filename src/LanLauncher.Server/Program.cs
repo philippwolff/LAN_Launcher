@@ -83,9 +83,10 @@ app.MapGet("/api/admin/dashboard", (HttpContext context) =>
     var marker = Path.Combine(AppContext.BaseDirectory, "launcher-version.txt");
     var version = File.Exists(marker) ? File.ReadAllText(marker).Trim() : "development";
     return Results.Ok(new { status = "Online", port = new Uri(builder.Configuration["ListenUrl"] ?? "http://0.0.0.0:8080").Port,
-        addresses, version, downloadRates = downloadLimiter.RatesByClient(), players = players.Values
-            .Where(x => DateTimeOffset.UtcNow - x.Seen < TimeSpan.FromSeconds(45))
-            .Select(x => x.Player).OrderBy(x => x.Name).ToArray(),
+        addresses, version, downloadRates = downloadLimiter.RatesByClient(), players = players
+            .Where(x => DateTimeOffset.UtcNow - x.Value.Seen < TimeSpan.FromSeconds(45))
+            .Select(x => new { clientId = x.Key, name = x.Value.Player.Name, status = x.Value.Player.Status })
+            .OrderBy(x => x.name).ToArray(),
         games = catalog.List() });
 });
 app.MapGet("/api/admin/library/location", (HttpContext context) =>
