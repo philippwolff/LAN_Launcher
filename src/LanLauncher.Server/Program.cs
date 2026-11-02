@@ -34,6 +34,12 @@ var tagCatalog = app.Services.GetRequiredService<GameTagCatalog>();
 var startNotices = app.Services.GetRequiredService<GameStartNoticeCatalog>();
 var modCatalog = app.Services.GetRequiredService<ModCatalog>();
 var libraryService = app.Services.GetRequiredService<ServerLibraryService>();
+// Total bandwidth for all simultaneous game-package downloads, in MiB/s.
+// Configure DownloadLimitMiBps in appsettings.json or LANLAUNCHER_DownloadLimitMiBps.
+var downloadLimitMiBps = builder.Configuration.GetValue<double>("DownloadLimitMiBps", 20);
+if (!double.IsFinite(downloadLimitMiBps) || downloadLimitMiBps < 0.0625 || downloadLimitMiBps > 10240)
+    throw new InvalidOperationException("DownloadLimitMiBps muss zwischen 0.0625 und 10240 liegen.");
+var downloadLimiter = new DownloadBandwidthLimiter((long)(downloadLimitMiBps * 1024 * 1024));
 var adminKeys = new AdminKeyStore(builder.Configuration);
 if (!adminKeys.Configured)
     Console.WriteLine("AdminKey noch nicht eingerichtet. Öffne http://localhost:8080/admin auf dem Server-PC.");
@@ -77,7 +83,7 @@ app.MapGet("/api/admin/dashboard", (HttpContext context) =>
     var marker = Path.Combine(AppContext.BaseDirectory, "launcher-version.txt");
     var version = File.Exists(marker) ? File.ReadAllText(marker).Trim() : "development";
     return Results.Ok(new { status = "Online", port = new Uri(builder.Configuration["ListenUrl"] ?? "http://0.0.0.0:8080").Port,
-        addresses, version, players = players.Values
+        addresses, version, downloadRates = downloadLimiter.RatesByClient(), players = players.Values
             .Where(x => DateTimeOffset.UtcNow - x.Seen < TimeSpan.FromSeconds(45))
             .Select(x => x.Player).OrderBy(x => x.Name).ToArray(),
         games = catalog.List() });
@@ -177,13 +183,6 @@ app.MapPut("/api/admin/games/{id}/mod", (HttpRequest req, string id, ModConfigur
     try { modCatalog.Set(id, config); return Results.Ok(); }
     catch (ArgumentException ex) { return Results.BadRequest(ex.Message); }
 });
-// Total bandwidth for all simultaneous game-package downloads, in MiB/s.
-// Configure DownloadLimitMiBps in appsettings.json or LANLAUNCHER_DownloadLimitMiBps.
-var downloadLimitMiBps = builder.Configuration.GetValue<double>("DownloadLimitMiBps", 20);
-if (!double.IsFinite(downloadLimitMiBps) || downloadLimitMiBps < 0.0625 || downloadLimitMiBps > 10240)
-    throw new InvalidOperationException("DownloadLimitMiBps muss zwischen 0.0625 und 10240 liegen.");
-var downloadLimiter = new DownloadBandwidthLimiter((long)(downloadLimitMiBps * 1024 * 1024));
-
 app.MapGet("/api/games/{id}/package", async (HttpContext context, string id) =>
 {
     var package = catalog.Package(id);
@@ -196,7 +195,8 @@ app.MapGet("/api/games/{id}/package", async (HttpContext context, string id) =>
     context.Response.ContentLength = stream.Length;
     context.Response.Headers.ContentDisposition =
         "attachment; filename*=UTF-8''" + Uri.EscapeDataString(name);
-    var idToken = downloadLimiter.Join();
+    var downloadClientId = context.Request.Query["clientId"].ToString();
+    var idToken = downloadLimiter.Join(downloadClientId);
     var buffer = new byte[64 * 1024];
     try
     {
@@ -205,6 +205,7 @@ app.MapGet("/api/games/{id}/package", async (HttpContext context, string id) =>
         {
             await downloadLimiter.WaitAsync(idToken, read, context.RequestAborted);
             await context.Response.Body.WriteAsync(buffer.AsMemory(0, read), context.RequestAborted);
+            downloadLimiter.RecordSent(idToken, read);
         }
     }
     catch (OperationCanceledException) when (context.RequestAborted.IsCancellationRequested) { }
