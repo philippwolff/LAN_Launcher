@@ -1,0 +1,15 @@
+<Window x:Class="LanLauncher.Server.Gui.RegisterGameWindow" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" Title="Neues Spiel registrieren" Width="570" Height="680" MinHeight="560" WindowStartupLocation="CenterOwner" Background="#242831" Foreground="White" FontFamily="Tahoma">
+<Window.Resources><Style TargetType="TextBlock"><Setter Property="Foreground" Value="White"/></Style></Window.Resources>
+<DockPanel Margin="16">
+<StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0"><Button Content="Überspringen" Click="Skip_Click" Padding="16,8" Margin="0,0,8,0"/><Button Content="Spiel speichern" Click="Save_Click" Padding="16,8"/></StackPanel>
+<ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel>
+<TextBlock Text="Gefundenes Spielpaket" FontWeight="Bold"/><TextBlock x:Name="FileLabel" TextWrapping="Wrap" Margin="0,4,0,12" Foreground="#B5BDCC"/>
+<TextBlock Text="Spielname *"/><TextBox x:Name="NameInput" Margin="0,4,0,12" Padding="7"/>
+<TextBlock Text="Version *"/><TextBox x:Name="VersionInput" Margin="0,4,0,12" Padding="7"/>
+<TextBlock Text="Beschreibung (optional)"/><TextBox x:Name="DescriptionInput" Margin="0,4,0,12" Padding="7" Height="62" TextWrapping="Wrap" AcceptsReturn="True"/>
+<TextBlock Text="Spieleranzahl (1–16, Mehrfachauswahl)" FontWeight="Bold" Margin="0,4,0,7"/>
+<WrapPanel x:Name="CountsPanel" Margin="0,0,0,12"/>
+<TextBlock Text="Genres / Tags (Mehrfachauswahl)" FontWeight="Bold" Margin="0,0,0,7"/>
+<WrapPanel x:Name="GenresPanel"/>
+</StackPanel></ScrollViewer>
+</DockPanel></Window>
