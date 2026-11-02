@@ -32,6 +32,7 @@ label{display:block;margin:12px 0 4px}.checks{display:flex;flex-wrap:wrap;gap:10
 </div>
 <div class="columns">
  <section class="panel"><div class="row space"><h2>Hochgeladene Spiele</h2><span id="gameCount"></span></div>
+ <details style="margin:12px 0"><summary style="cursor:pointer">Speicherort der Spielebibliothek ändern</summary><p><small>Die vorhandene Bibliothek wird in einen neuen, leeren Ordner kopiert. Der bisherige Ordner bleibt als Sicherung erhalten. Danach den Server neu starten.</small></p><label for="libraryPath">Neuer Bibliotheksordner auf dem Server-PC:</label><div class="row"><input id="libraryPath" type="text" placeholder="D:\\LAN-Spiele" style="flex:1;min-width:220px"><button id="loadLibraryPath">Aktuellen Pfad anzeigen</button><button id="saveLibraryPath">Speicherort übernehmen</button></div></details>
  <div class="row"><button id="sync">Spiele synchronisieren</button><button id="folder">Spieleordner öffnen</button></div>
  <table><thead><tr><th>Spiel</th><th>Version</th></tr></thead><tbody id="games"></tbody></table></section>
  <section class="panel"><div class="row space"><h2>Aktive Verbindungen</h2><span id="playerCount"></span></div>
@@ -84,6 +85,18 @@ $('saveKey').onclick=()=>action(async()=>{
  notice('AdminKey gespeichert. Ab sofort gilt der neue Schlüssel.');await keyStatus();
 });
 $('check').onclick=()=>action(async()=>{await api('/api/admin/check');notice('AdminKey ist gültig.')});
+$('loadLibraryPath').onclick=()=>action(async()=>{
+ const result=await api('/api/admin/library/location');
+ $('libraryPath').value=result.path;
+ notice('Aktueller Bibliotheksordner angezeigt.');
+});
+$('saveLibraryPath').onclick=()=>action(async()=>{
+ const path=$('libraryPath').value.trim();
+ if(!path)throw new Error('Bitte einen Speicherort angeben.');
+ if(!confirm('Bibliothek in den neuen, leeren Ordner kopieren? Danach ist ein Serverneustart erforderlich.'))return;
+ const result=await api('/api/admin/library/location','POST',{path});
+ notice(result.restartRequired?'Bibliothek kopiert. Bitte Server stoppen und über Server starten.cmd neu starten.':'Dieser Speicherort wird bereits verwendet.');
+});
 $('folder').onclick=()=>action(async()=>{await api('/api/admin/dashboard/open-folder','POST');notice('Spieleordner wurde auf dem Server-PC geöffnet.')});
 $('stop').onclick=()=>action(async()=>{if(!confirm('Server wirklich stoppen? Alle Clients werden getrennt.'))return;await api('/api/admin/dashboard/stop','POST');notice('Server wird gestoppt. Zum erneuten Starten Server starten.cmd ausführen.')});
 for(let i=1;i<=16;i++){const label=document.createElement('label');const cb=document.createElement('input');cb.type='checkbox';cb.value=i;label.append(cb,document.createTextNode(' '+i));$('counts').append(label)}
