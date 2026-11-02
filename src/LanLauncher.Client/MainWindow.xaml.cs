@@ -122,6 +122,7 @@ public partial class MainWindow : Window
         catch (UnauthorizedAccessException) { LauncherVersionText.Text = "Version unbekannt"; }
         timer.Tick += async (_, _) => await RefreshAsync();
         ShowOfflineLibrary("Offline – lokal installierte Spiele verfügbar");
+        SelectFirstGameIfNeeded();
         Loaded += async (_, _) => await CheckForUpdatesAsync();
     }
     private async void Connect_Click(object sender, RoutedEventArgs e)
@@ -162,6 +163,7 @@ public partial class MainWindow : Window
                 allLibraryGames = LocalGameLibrary.Merge(games, settings);
                 await LoadLibraryTagsAsync(games);
                 ApplyLibraryTagFilters(selectedGameId ?? settings.LastOpenedGameId);
+                SelectFirstGameIfNeeded();
             }
             finally { updatingGames = false; }
             var gameNames = games.Concat(settings.KnownGames.Values)
@@ -175,6 +177,16 @@ public partial class MainWindow : Window
         }
         catch (Exception ex) { serverConnected = false; ShowOfflineLibrary("Server nicht erreichbar – Offline-Modus: " + ex.Message); }
     }
+    private void SelectFirstGameIfNeeded()
+    {
+        if (GamesList.SelectedItem is not GameInfo && GamesList.Items.Count > 0)
+            GamesList.SelectedIndex = 0;
+        if (GamesList.SelectedItem is GameInfo selected)
+            SelectedGameTitle.Text = selected.Name + " (Version " + selected.Version + ")";
+        else
+            SelectedGameTitle.Text = "Kein Spiel ausgewählt";
+    }
+
     private void RunSelectedGameAction(GameActionsWindow.GameAction action)
     {
         if (GamesList.SelectedItem is GameInfo game) OpenGameActions(game, action);
