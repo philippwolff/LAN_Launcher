@@ -86,7 +86,7 @@ public partial class MainWindow : Window
                 MessageBox.Show(this, "Für die Synchronisierung muss ein AdminKey in Server/appsettings.json oder als Umgebungsvariable LANLAUNCHER_AdminKey konfiguriert sein.", "Administratorzugriff erforderlich");
                 return;
             }
-            using var request = new HttpRequestMessage(HttpMethod.Post, BaseUrl + "/api/admin/library/sync");
+            using var request = new HttpRequestMessage(HttpMethod.Get, BaseUrl + "/api/admin/library/pending");
             request.Headers.Add("X-Admin-Key", key);
             using var response = await http.SendAsync(request);
             if (response.StatusCode == HttpStatusCode.Unauthorized)
@@ -95,15 +95,35 @@ public partial class MainWindow : Window
                 return;
             }
             response.EnsureSuccessStatusCode();
-            using var result = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
-            var data = result.RootElement;
-            var recovered = data.GetProperty("recovered").GetInt32();
-            var missing = data.GetProperty("missingPackages").GetInt32();
+            var pending = await response.Content.ReadFromJsonAsync<string[]>() ?? [];
+            var registered = 0;
+            foreach (var filename in pending)
+            {
+                var dialog = new RegisterGameWindow(filename) { Owner = this };
+                if (dialog.ShowDialog() != true) continue;
+                var payload = new
+                {
+                    FileName = filename,
+                    Name = dialog.GameName,
+                    Version = dialog.GameVersion,
+                    Description = dialog.GameDescription,
+                    Tags = new { PlayerCounts = dialog.PlayerCounts, Genres = dialog.SelectedGenres }
+                };
+                using var registration = new HttpRequestMessage(HttpMethod.Post, BaseUrl + "/api/admin/library/register");
+                registration.Headers.Add("X-Admin-Key", key);
+                registration.Content = JsonContent.Create(payload);
+                using var saved = await http.SendAsync(registration);
+                if (!saved.IsSuccessStatusCode)
+                {
+                    MessageBox.Show(this, "Spiel konnte nicht registriert werden: " + filename +
+                        "\\n" + await saved.Content.ReadAsStringAsync(), "Synchronisierung");
+                    continue;
+                }
+                registered++;
+            }
             await RefreshAsync();
-            MessageBox.Show(this,
-                recovered + " fehlende Spieleinträge aus vorhandenen Paketen wiederhergestellt.\n" +
-                missing + " registrierte Spiele ohne Paket gefunden.\n" +
-                "Wiederhergestellte Spiele erhalten vorläufige Namen und Versionen.",
+            MessageBox.Show(this, registered + " neue Spiele registriert. " +
+                (pending.Length - registered) + " Pakete bleiben zur späteren Registrierung offen.",
                 "Synchronisierung abgeschlossen", MessageBoxButton.OK, MessageBoxImage.Information);
         }
         catch (Exception ex) when (ex is IOException or HttpRequestException or TaskCanceledException or JsonException or UnauthorizedAccessException)
