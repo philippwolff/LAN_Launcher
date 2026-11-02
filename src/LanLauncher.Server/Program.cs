@@ -294,6 +294,15 @@ app.MapPost("/api/admin/upload", async (HttpRequest req) =>
 }).DisableAntiforgery();
 app.MapDelete("/api/admin/games/{id}", (HttpRequest req, string id) =>
     !IsAdmin(req) ? Results.Unauthorized() : catalog.Remove(id) ? Results.Ok() : Results.NotFound());
+static void CopyLibraryDirectory(string source, string target)
+{
+    Directory.CreateDirectory(target);
+    foreach (var file in Directory.GetFiles(source))
+        File.Copy(file, Path.Combine(target, Path.GetFileName(file)));
+    foreach (var folder in Directory.GetDirectories(source))
+        CopyLibraryDirectory(folder, Path.Combine(target, Path.GetFileName(folder)));
+}
+
 app.Run();
 
 public record ImportGameRequest(string FileName, string Name, string Version, string? Description);
@@ -305,14 +314,5 @@ public record GameStartNotice(string Text);
 public record RegisterPackageRequest(string FileName, string Name, string Version, string? Description, GameTags Tags);
 
 public record SetAdminKeyRequest(string? OldKey, string NewKey);
-
-static void CopyLibraryDirectory(string source, string target)
-{
-    Directory.CreateDirectory(target);
-    foreach (var file in Directory.GetFiles(source))
-        File.Copy(file, Path.Combine(target, Path.GetFileName(file)));
-    foreach (var folder in Directory.GetDirectories(source))
-        CopyLibraryDirectory(folder, Path.Combine(target, Path.GetFileName(folder)));
-}
 
 public record LibraryLocationRequest(string Path);
