@@ -453,3 +453,20 @@ wiederverwendet. Die heruntergeladene Originaldatei bleibt
 nach der Installation erhalten.
 Wird die Datei verschoben oder geloescht, ist die Schaltflaeche
 beim naechsten Oeffnen der Spielaktionen wieder deaktiviert.
+
+OFFLINE-MODUS / SPIELE OHNE SERVER STARTEN:
+Der Client zeigt beim Programmstart auch ohne Serververbindung
+bereits lokal installierte Spiele aus den gespeicherten
+Spielinformationen an. Dazu muss die Spiel-EXE noch am
+hinterlegten Ort vorhanden sein oder im Standard-Spielordner
+automatisch erkannt werden koennen.
+Schlaegt eine Serververbindung fehl oder bricht sie ab,
+wechselt die Bibliothek auf lokal installierte Spiele.
+Die Spielaktionen "Starten", "Spiel deinstallieren",
+"Einstellungen" und die Installation eines zuvor lokal
+heruntergeladenen Pakets bleiben moeglich.
+Serveraktionen wie Download, Loeschen, Tags und Mod-Verwaltung
+werden offline deaktiviert. Die Online-Spielerliste ist leer.
+Mit "Verbinden" kann jederzeit erneut eine Verbindung
+aufgebaut werden. Einige Spiele koennen unabhaengig vom
+Launcher selbst einen Internetdienst oder DRM benoetigen.
