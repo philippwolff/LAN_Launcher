@@ -851,11 +851,11 @@ public partial class MainWindow : Window
                     if (installers.Length > 0)
                     {
                         var confirmation = MessageBox.Show(this,
-                            "Dieses Paket enthält " + installers.Length + " Installationsprogramme.\\n\\n" +
-                            string.Join("\\n", installers.Select((path, index) =>
+                            "Dieses Paket enthält " + installers.Length + " Installationsprogramme.\n\n" +
+                            string.Join("\n", installers.Select((path, index) =>
                                 (index + 1) + ". " + Path.GetRelativePath(targetFolder, path))) +
-                            "\\n\\nDie Programme werden einzeln und nacheinander gestartet. " +
-                            "Bitte jeden Assistenten vollständig abschließen, bevor der nächste startet.\\n\\n" +
+                            "\n\nDie Programme werden einzeln und nacheinander gestartet. " +
+                            "Bitte jeden Assistenten vollständig abschließen, bevor der nächste startet.\n\n" +
                             "Nur ausführen, wenn du den Dateien vertraust. Jetzt beginnen?",
                             "Mehrstufige Spielinstallation", MessageBoxButton.YesNo,
                             MessageBoxImage.Warning, MessageBoxResult.No);
@@ -869,8 +869,8 @@ public partial class MainWindow : Window
                             var path = installers[step];
                             var proceed = MessageBox.Show(this,
                                 "Schritt " + (step + 1) + " von " + installers.Length +
-                                "\\n\\n" + Path.GetRelativePath(targetFolder, path) +
-                                "\\n\\nDieses Installationsprogramm jetzt starten?",
+                                "\n\n" + Path.GetRelativePath(targetFolder, path) +
+                                "\n\nDieses Installationsprogramm jetzt starten?",
                                 "Installation: " + game.Name, MessageBoxButton.YesNo,
                                 MessageBoxImage.Question, MessageBoxResult.No);
                             if (proceed != MessageBoxResult.Yes)
@@ -889,7 +889,7 @@ public partial class MainWindow : Window
                             {
                                 var continueAfterError = MessageBox.Show(this,
                                     "Der Installer meldete Exitcode " + process.ExitCode +
-                                    ".\\n\\nTrotzdem mit dem nächsten Schritt fortfahren?",
+                                    ".\n\nTrotzdem mit dem nächsten Schritt fortfahren?",
                                     "Installer abgeschlossen", MessageBoxButton.YesNo,
                                     MessageBoxImage.Warning, MessageBoxResult.No);
                                 if (continueAfterError != MessageBoxResult.Yes) return;
