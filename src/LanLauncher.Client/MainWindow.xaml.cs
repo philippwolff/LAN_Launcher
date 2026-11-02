@@ -19,6 +19,24 @@ public partial class MainWindow : Window
     private bool updatingGames;
     private bool serverConnected;
 
+    private void Update_Click(object sender, RoutedEventArgs e)
+    {
+        const string updatesUrl = "https://github.com/philippwolff/LAN_Launcher/actions/workflows/windows-client.yml";
+        try
+        {
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(updatesUrl)
+            {
+                UseShellExecute = true
+            });
+            StatusText.Text = "GitHub Actions geöffnet – neuesten erfolgreichen Windows Client ZIP-Build herunterladen.";
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(this, "Die Update-Seite konnte nicht geöffnet werden:\n" + updatesUrl +
+                "\n\n" + ex.Message, "Updates prüfen", MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
+    }
+
     private void Settings_Click(object sender, RoutedEventArgs e)
     {
         var window = new SettingsWindow(settings) { Owner = this };
