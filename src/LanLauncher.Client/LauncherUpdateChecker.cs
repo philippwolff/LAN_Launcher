@@ -60,5 +60,5 @@ internal static class LauncherUpdateChecker
     }
 
     private static bool TryVersion(string tag, out Version version) =>
-        Version.TryParse(tag.TrimStart('v', 'V'), out version!);
+        Version.TryParse(tag.TrimStart('v', 'V'), out version);
 }
