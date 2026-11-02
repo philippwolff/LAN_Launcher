@@ -11,6 +11,8 @@ public sealed class DownloadBandwidthLimiter
     private readonly object gate = new();
     private readonly Dictionary<long, double> nextSendSeconds = new();
     private long nextId;
+    private readonly Dictionary<long, string> owners = new();
+    private readonly Dictionary<long, Queue<(double Time, int Bytes)>> recentBytes = new();
     private readonly Stopwatch clock = Stopwatch.StartNew();
     public long BytesPerSecond { get; }
 
@@ -20,12 +22,14 @@ public sealed class DownloadBandwidthLimiter
         BytesPerSecond = bytesPerSecond;
     }
 
-    public long Join()
+    public long Join(string clientId)
     {
         lock (gate)
         {
             var id = ++nextId;
             nextSendSeconds[id] = clock.Elapsed.TotalSeconds;
+            owners[id] = clientId;
+            recentBytes[id] = new Queue<(double Time, int Bytes)>();
             // Rebalance existing transfers immediately when the participant count changes.
             foreach (var key in nextSendSeconds.Keys.ToArray())
                 nextSendSeconds[key] = Math.Min(nextSendSeconds[key], clock.Elapsed.TotalSeconds);
@@ -38,8 +42,38 @@ public sealed class DownloadBandwidthLimiter
         lock (gate)
         {
             nextSendSeconds.Remove(id);
+            owners.Remove(id);
+            recentBytes.Remove(id);
             foreach (var key in nextSendSeconds.Keys.ToArray())
                 nextSendSeconds[key] = Math.Min(nextSendSeconds[key], clock.Elapsed.TotalSeconds);
+        }
+    }
+
+    public IReadOnlyDictionary<string, double> RatesByClient()
+    {
+        lock (gate)
+        {
+            var now = clock.Elapsed.TotalSeconds;
+            var result = new Dictionary<string, double>(StringComparer.Ordinal);
+            foreach (var (id, owner) in owners)
+            {
+                var samples = recentBytes[id];
+                while (samples.Count > 0 && samples.Peek().Time < now - 5) samples.Dequeue();
+                var bytes = samples.Sum(x => (long)x.Bytes);
+                result[owner] = result.GetValueOrDefault(owner) + bytes / 5.0;
+            }
+            return result;
+        }
+    }
+
+    public void RecordSent(long id, int bytes)
+    {
+        lock (gate)
+        {
+            if (!recentBytes.TryGetValue(id, out var samples)) return;
+            var now = clock.Elapsed.TotalSeconds;
+            samples.Enqueue((now, bytes));
+            while (samples.Count > 0 && samples.Peek().Time < now - 5) samples.Dequeue();
         }
     }
 
