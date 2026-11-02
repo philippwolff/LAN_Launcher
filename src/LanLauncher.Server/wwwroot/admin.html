@@ -183,5 +183,5 @@ $('form').onsubmit=async e=>{
  genres:[...$('genres').querySelectorAll('input:checked')].map(x=>x.value)}};
  try{await api('/api/admin/library/register','POST',data);nextPackage()}catch(error){notice(error.message)}
 };
-refresh();initGenres();keyStatus();setInterval(refresh,3000);
+refresh();initGenres();keyStatus();loadDownloadSharing();setInterval(refresh,3000);
 </script></body></html>
