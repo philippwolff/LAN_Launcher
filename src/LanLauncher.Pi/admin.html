@@ -6,9 +6,11 @@
 *{box-sizing:border-box}body{margin:0}header{padding:22px max(24px,5vw);background:#182333;border-bottom:1px solid #314055;display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap}
 h1{font-size:1.5rem;margin:0}h2{font-size:1.1rem;margin:0 0 16px}main{max-width:1250px;margin:auto;padding:26px 24px}
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:18px}.card{background:#192434;border:1px solid #344257;border-radius:12px;padding:20px;min-width:0}
-input,button{font:inherit;border-radius:7px;padding:10px 12px}input{background:#0c1522;color:#fff;border:1px solid #53647b;min-width:190px}button{background:#3477cb;border:0;color:#fff;cursor:pointer}button:hover{background:#4d8fdd}
+input,textarea,button{font:inherit;border-radius:7px;padding:10px 12px}input,textarea{background:#0c1522;color:#fff;border:1px solid #53647b;min-width:190px}button{background:#3477cb;border:0;color:#fff;cursor:pointer}button:hover{background:#4d8fdd}
 .small{color:#a8b8cb;font-size:.88rem}.value{font-size:1.6rem;font-weight:700}.row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 table{width:100%;border-collapse:collapse;text-align:left}td,th{padding:10px 6px;border-bottom:1px solid #344257;overflow-wrap:anywhere}
+.manage-actions{display:flex;gap:8px;flex-wrap:wrap}.manage-actions button{padding:6px 9px;font-size:.85rem}.danger{background:#9e3440}.danger:hover{background:#bc4755}
+#editor{margin-top:18px}#editor[hidden]{display:none}.edit-fields{display:grid;gap:12px}.edit-fields label{display:grid;gap:5px}.edit-fields input,.edit-fields textarea{width:100%;min-width:0}.edit-fields textarea{min-height:90px;resize:vertical}
 #message{min-height:24px;color:#ffcc7b}.green{color:#80dca9}code{overflow-wrap:anywhere}
 </style></head><body>
 <header><div><h1>LAN Launcher – Serververwaltung</h1><div class="small">Raspberry Pi · NAS4Free · SMB-Direktübertragung</div></div>
@@ -20,7 +22,13 @@ table{width:100%;border-collapse:collapse;text-align:left}td,th{padding:10px 6px
 <section class="card"><h2>Verbundene Clients</h2><div id="clients" class="value">–</div><p class="small">Aktive Spieler der letzten 45 Sekunden</p></section>
 <section class="card"><h2>Spielebibliothek</h2><div id="count" class="value">–</div><p class="small">Registrierte Spiele und Mods</p></section>
 <section class="card"><h2>Aktive Verbindungen</h2><table><thead><tr><th>Name</th><th>Status</th></tr></thead><tbody id="players"></tbody></table></section>
-<section class="card"><h2>Spiele auf dem Server</h2><table><thead><tr><th>Spiel</th><th>Version</th></tr></thead><tbody id="games"></tbody></table></section>
+<section class="card"><h2>Spiele auf dem Server</h2><table><thead><tr><th>Spiel</th><th>Version</th><th>Aktionen</th></tr></thead><tbody id="games"></tbody></table></section>
+<section class="card" id="editor" hidden><h2>Spiel bearbeiten</h2><form id="editForm" class="edit-fields">
+<label>Spielname<input id="editName" required maxlength="150"></label>
+<label>Version<input id="editVersion" required maxlength="60"></label>
+<label>Beschreibung<textarea id="editDescription" maxlength="5000"></textarea></label>
+<div class="row"><button type="submit">Speichern</button><button type="button" id="editCancel">Abbrechen</button></div>
+</form></section>
 <section class="card"><h2>Downloadgeschwindigkeit</h2><p class="small">Downloads laufen direkt zwischen Windows-Client und NAS. Der Raspberry Pi kann die Geschwindigkeit derzeit nicht selbst messen. Die Meldung durch Clients wird später ergänzt.</p></section>
-<section class="card"><h2>Verwaltung</h2><p class="small">Spiel-Uploads erfolgen im Launcher direkt auf NAS4Free. Löschen, Einstellungen und weitere Verwaltungsfunktionen folgen. Der bestehende Windows-Server bleibt unverändert.</p></section>
+<section class="card"><h2>Verwaltung</h2><p class="small">Spiele und Mods lassen sich jetzt im Katalog bearbeiten oder entfernen. Beim Entfernen bleibt die Paketdatei auf der NAS erhalten. Uploads erfolgen weiterhin im Windows-Launcher; der Windows-Server bleibt unverändert.</p></section>
 </div></main><script src="/admin.js" defer></script></body></html>
