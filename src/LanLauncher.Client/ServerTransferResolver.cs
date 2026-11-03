@@ -1,4 +1,3 @@
-using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json.Serialization;
 
@@ -13,12 +12,12 @@ internal static class ServerTransferResolver
     internal const string CapabilityPath = "/api/capabilities";
 
     internal static async Task<TransferCapabilities> DetectAsync(
-        HttpClient client, CancellationToken cancellationToken = default)
+        HttpClient client, string server, CancellationToken cancellationToken = default)
     {
         try
         {
             using var response = await client.GetAsync(
-                CapabilityPath, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+                server.TrimEnd('/') + CapabilityPath, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
             if (!response.IsSuccessStatusCode)
                 return TransferCapabilities.LegacyHttp;
 
