@@ -847,6 +847,72 @@ public partial class MainWindow : Window
         popup.Show();
         try
         {
+            using var capabilityClient = new HttpClient { Timeout = TimeSpan.FromSeconds(10) };
+            var capabilities = await ServerTransferResolver.DetectAsync(capabilityClient, server!, popup.Cancellation);
+            if (capabilities.DownloadMode == "smb")
+            {
+                var gameId = Guid.NewGuid().ToString("N");
+                var isMod = modConfiguration is not null;
+                var relativePath = (isMod ? "Mods/" : "Games/") + gameId +
+                    Path.GetExtension(dialog.FileName).ToLowerInvariant();
+                var target = ServerTransferResolver.ResolveSmbPackagePath(capabilities, relativePath);
+                var tempTarget = target + ".uploading-" + Guid.NewGuid().ToString("N");
+                var registered = false;
+                try
+                {
+                    // Files go directly from the admin PC to the NAS, never through the Pi.
+                    await using (var source = new FileStream(dialog.FileName, FileMode.Open,
+                        FileAccess.Read, FileShare.Read, 128 * 1024, useAsync: true))
+                    await using (var destination = new FileStream(tempTarget, FileMode.CreateNew,
+                        FileAccess.Write, FileShare.None, 128 * 1024, useAsync: true))
+                    {
+                        var buffer = new byte[128 * 1024];
+                        long sent = 0;
+                        int read;
+                        while ((read = await source.ReadAsync(buffer, popup.Cancellation)) != 0)
+                        {
+                            await destination.WriteAsync(buffer.AsMemory(0, read), popup.Cancellation);
+                            sent += read;
+                            popup.Update(sent, source.Length);
+                        }
+                        await destination.FlushAsync(popup.Cancellation);
+                    }
+                    popup.Cancellation.ThrowIfCancellationRequested();
+                    File.Move(tempTarget, target);
+                    using var register = AdminRequest(HttpMethod.Post, "/api/admin/games/register");
+                    register.Content = JsonContent.Create(new {
+                        id = gameId, name = GameNameBox.Text, version = GameVersionBox.Text,
+                        description = "", relativePath
+                    });
+                    using var result = await http.SendAsync(register, popup.Cancellation);
+                    if (!result.IsSuccessStatusCode)
+                        throw new InvalidOperationException("NAS-Datei übertragen, Registrierung fehlgeschlagen (HTTP " +
+                            (int)result.StatusCode + "): " + await result.Content.ReadAsStringAsync());
+                    registered = true;
+                    await SaveTagsAsync(gameId, pendingTags);
+                    if (modConfiguration is not null)
+                    {
+                        using var modRequest = AdminRequest(HttpMethod.Put,
+                            "/api/admin/games/" + Uri.EscapeDataString(gameId) + "/mod");
+                        modRequest.Content = JsonContent.Create(modConfiguration);
+                        using var modResponse = await http.SendAsync(modRequest);
+                        if (!modResponse.IsSuccessStatusCode)
+                            throw new InvalidOperationException("Mod hochgeladen, aber Zuordnung fehlgeschlagen: " +
+                                await modResponse.Content.ReadAsStringAsync());
+                    }
+                    pendingTags = new([], []);
+                    popup.Finishing();
+                    StatusText.Text = isMod ? "Mod direkt auf NAS hochgeladen." : "Spiel direkt auf NAS hochgeladen.";
+                    await RefreshAsync();
+                }
+                finally
+                {
+                    if (File.Exists(tempTarget)) File.Delete(tempTarget);
+                    // If registration failed, remove the unregistered final package.
+                    if (!registered && File.Exists(target)) File.Delete(target);
+                }
+                return;
+            }
             using var request = AdminRequest(HttpMethod.Post, "/api/admin/upload");
             using var multipart = new MultipartFormDataContent();
             using var file = File.OpenRead(dialog.FileName);
