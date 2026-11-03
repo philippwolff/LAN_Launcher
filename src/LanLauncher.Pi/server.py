@@ -4,6 +4,8 @@
 Game files are NEVER streamed by this process: Windows clients fetch them via SMB.
 """
 import argparse
+import html
+import shutil
 import hashlib
 import hmac
 import json
@@ -68,6 +70,20 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(payload)
 
+    def send_html(self, page):
+        data = page.encode("utf-8")
+        self.send_response(200)
+        self.send_header("Content-Type", "text/html; charset=utf-8")
+        self.send_header("Content-Length", str(len(data)))
+        self.send_header("Cache-Control", "no-store")
+        self.send_header("Content-Security-Policy",
+                         "default-src 'self'; style-src 'self' 'unsafe-inline'; "
+                         "script-src 'self'; connect-src 'self'; object-src 'none'; "
+                         "base-uri 'none'; frame-ancestors 'none'")
+        self.send_header("X-Content-Type-Options", "nosniff")
+        self.end_headers()
+        self.wfile.write(data)
+
     def body(self):
         # .NET HttpClient may send JSON with Transfer-Encoding: chunked instead
         # of Content-Length. Decode it with strict size and framing limits.
@@ -126,6 +142,41 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         path = urlsplit(self.path).path
+        if path == "/admin":
+            page = Path(__file__).with_name("admin.html")
+            if not page.is_file():
+                return self.send_json(404, {"error": "Weboberfläche fehlt"})
+            return self.send_html(page.read_text(encoding="utf-8"))
+        if path == "/admin.js":
+            page = Path(__file__).with_name("admin.js")
+            if not page.is_file():
+                return self.send_json(404, {"error": "Weboberfläche fehlt"})
+            payload = page.read_bytes()
+            self.send_response(200)
+            self.send_header("Content-Type", "text/javascript; charset=utf-8")
+            self.send_header("Content-Length", str(len(payload)))
+            self.send_header("Cache-Control", "no-store")
+            self.send_header("X-Content-Type-Options", "nosniff")
+            self.end_headers()
+            self.wfile.write(payload)
+            return
+        if path == "/api/admin/dashboard":
+            if not self.authorized():
+                return self.send_json(401, {"error": "Admin-Schlüssel ungültig"})
+            usage = shutil.disk_usage(self.server.root)
+            with LOCK:
+                now = time.monotonic()
+                players = [{"clientId": key, "name": v["name"], "status": v["status"]}
+                           for key, v in PLAYERS.items() if now - v["seen"] < 45]
+            return self.send_json(200, {
+                "status": "Online", "port": self.server.server_port,
+                "serverType": "Raspberry Pi", "storage": {
+                    "total": usage.total, "used": usage.used, "free": usage.free,
+                    "path": str(self.server.root)},
+                "players": players, "games": self.games(),
+                "downloadRates": [],
+                "note": "SMB-Downloads laufen direkt zwischen Client und NAS; Raten werden noch nicht gemeldet."
+            })
         if path == "/api/health":
             return self.send_json(200, {"status": "ok", "service": "LAN Launcher Pi"})
         if path == "/api/capabilities":
