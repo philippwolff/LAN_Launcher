@@ -22,7 +22,15 @@ for file in server.py admin.html admin.js; do
   [[ -f "${SOURCE_DIR}/${file}" ]] || { echo "Datei fehlt: ${file}" >&2; exit 1; }
 done
 
-python3 -m py_compile "${SOURCE_DIR}/server.py"
+python3 - "${SOURCE_DIR}/server.py" <<'PY'
+import ast
+import pathlib
+import sys
+
+source = pathlib.Path(sys.argv[1])
+ast.parse(source.read_text(encoding="utf-8"), filename=str(source))
+print("Python-Syntaxprüfung erfolgreich.")
+PY
 sudo install -d -o root -g root -m 755 "${TARGET_DIR}"
 for file in server.py admin.html admin.js; do
   sudo install -o root -g root -m 644 "${SOURCE_DIR}/${file}" "${TARGET_DIR}/${file}"
