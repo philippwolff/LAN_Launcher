@@ -80,7 +80,7 @@ class Handler(BaseHTTPRequestHandler):
             data = bytearray()
             while True:
                 line = self.rfile.readline(128)
-                if not line.endswith(b"\\r\\n"):
+                if not line.endswith(b"\r\n"):
                     raise ValueError("Ungültige Chunk-Kodierung.")
                 try:
                     size = int(line[:-2].split(b";", 1)[0], 16)
@@ -92,15 +92,15 @@ class Handler(BaseHTTPRequestHandler):
                     # Consume trailer fields, bounded to avoid hanging on malformed input.
                     for _ in range(16):
                         trailer = self.rfile.readline(1024)
-                        if trailer == b"\\r\\n":
+                        if trailer == b"\r\n":
                             break
-                        if not trailer.endswith(b"\\r\\n"):
+                        if not trailer.endswith(b"\r\n"):
                             raise ValueError("Ungültiger Chunk-Abschluss.")
                     else:
                         raise ValueError("Zu viele HTTP-Trailer.")
                     break
                 data.extend(self.rfile.read(size))
-                if self.rfile.read(2) != b"\\r\\n":
+                if self.rfile.read(2) != b"\r\n":
                     raise ValueError("Ungültiger Chunk-Abschluss.")
             return json.loads(data)
         try:
