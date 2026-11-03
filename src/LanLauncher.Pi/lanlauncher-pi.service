@@ -1,0 +1,23 @@
+[Unit]
+Description=LAN Launcher Raspberry Pi NAS Management Server
+Wants=network-online.target
+After=network-online.target
+RequiresMountsFor=/mnt/lanlauncher-nas
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/home/admin/LAN_Launcher/src/LanLauncher.Pi
+ExecStart=/usr/bin/python3 /home/admin/LAN_Launcher/src/LanLauncher.Pi/server.py --admin-key-file /etc/lanlauncher/admin-key
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/mnt/lanlauncher-nas/LANLauncher
+CapabilityBoundingSet=
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+
+[Install]
+WantedBy=multi-user.target
