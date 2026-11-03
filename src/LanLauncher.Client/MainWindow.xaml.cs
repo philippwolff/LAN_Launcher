@@ -872,6 +872,8 @@ public partial class MainWindow : Window
                 try
                 {
                     // Files go directly from the admin PC to the NAS, never through the Pi.
+                    try
+                    {
                     await using (var source = new FileStream(dialog.FileName, FileMode.Open,
                         FileAccess.Read, FileShare.Read, 128 * 1024, useAsync: true))
                     await using (var destination = new FileStream(tempTarget, FileMode.CreateNew,
@@ -890,6 +892,15 @@ public partial class MainWindow : Window
                     }
                     popup.Cancellation.ThrowIfCancellationRequested();
                     File.Move(tempTarget, target);
+                    }
+                    catch (UnauthorizedAccessException ex)
+                    {
+                        throw new IOException(SmbAccessHelp.Explain(ex, capabilities.SmbShare, write: true), ex);
+                    }
+                    catch (IOException ex)
+                    {
+                        throw new IOException(SmbAccessHelp.Explain(ex, capabilities.SmbShare, write: true), ex);
+                    }
                     using var register = AdminRequest(HttpMethod.Post, "/api/admin/games/register");
                     register.Content = JsonContent.Create(new {
                         id = gameId, name = GameNameBox.Text, version = GameVersionBox.Text,
