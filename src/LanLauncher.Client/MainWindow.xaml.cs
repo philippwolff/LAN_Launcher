@@ -853,7 +853,18 @@ public partial class MainWindow : Window
             {
                 var gameId = Guid.NewGuid().ToString("N");
                 var isMod = modConfiguration is not null;
-                var relativePath = (isMod ? "Mods/" : "Games/") + gameId +
+                // Keep a recognizable package name, with a short unique suffix to avoid collisions.
+                var displayName = GameNameBox.Text.Trim();
+                var safeName = new string(displayName.Select(ch =>
+                    char.IsLetterOrDigit(ch) || ch is '-' or '_' or ' ' ? ch : '_').ToArray())
+                    .Trim(' ', '.', '_');
+                if (safeName.Length == 0) safeName = "Spiel";
+                if (safeName.Length > 70) safeName = safeName[..70].TrimEnd();
+                var safeVersion = new string(GameVersionBox.Text.Trim().Select(ch =>
+                    char.IsLetterOrDigit(ch) || ch is '-' or '_' or '.' ? ch : '_').ToArray());
+                if (safeVersion.Length > 24) safeVersion = safeVersion[..24];
+                var relativePath = (isMod ? "Mods/" : "Games/") +
+                    safeName + "_v" + safeVersion + "_" + gameId[..8] +
                     Path.GetExtension(dialog.FileName).ToLowerInvariant();
                 var target = ServerTransferResolver.ResolveSmbPackagePath(capabilities, relativePath);
                 var tempTarget = target + ".uploading-" + Guid.NewGuid().ToString("N");
