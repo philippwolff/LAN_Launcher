@@ -136,7 +136,16 @@ public partial class MainWindow : Window
             var name = NameBox.Text.Trim();
             if (name.Length is < 2 or > 32) { StatusText.Text = "Benutzername: 2–32 Zeichen."; return; }
             var response = await http.PostAsJsonAsync(server + "/api/join", new JoinRequest(name, clientId));
-            if (!response.IsSuccessStatusCode) { serverConnected = false; timer.Stop(); ShowOfflineLibrary("Anmeldung fehlgeschlagen – lokale Spiele verfügbar"); return; }
+            if (!response.IsSuccessStatusCode)
+            {
+                serverConnected = false;
+                timer.Stop();
+                var serverMessage = await response.Content.ReadAsStringAsync();
+                if (serverMessage.Length > 300) serverMessage = serverMessage[..300] + "…";
+                ShowOfflineLibrary("Anmeldung fehlgeschlagen (HTTP " + (int)response.StatusCode +
+                    ") – " + serverMessage + " – lokale Spiele verfügbar");
+                return;
+            }
             serverConnected = true;
             StatusText.Text = "Verbunden als " + name;
             timer.Start();
