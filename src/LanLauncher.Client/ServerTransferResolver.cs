@@ -16,30 +16,39 @@ internal static class ServerTransferResolver
     internal static async Task<TransferCapabilities> DetectAsync(
         HttpClient client, string server, CancellationToken cancellationToken = default)
     {
-        try
+        // Only an explicit 404 means that a legacy server lacks capability negotiation.
+        // Transient network errors must not silently switch a NAS server to HTTP downloads.
+        for (var attempt = 0; attempt < 3; attempt++)
         {
-            using var response = await client.GetAsync(
-                server.TrimEnd('/') + CapabilityPath, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
-            if (!response.IsSuccessStatusCode)
-                return TransferCapabilities.LegacyHttp;
+            cancellationToken.ThrowIfCancellationRequested();
+            try
+            {
+                using var response = await client.GetAsync(
+                    server.TrimEnd('/') + CapabilityPath,
+                    HttpCompletionOption.ResponseHeadersRead, cancellationToken);
 
-            var capabilities = await response.Content.ReadFromJsonAsync<TransferCapabilities>(
-                cancellationToken: cancellationToken);
-            if (capabilities is { ProtocolVersion: 1, DownloadMode: "smb" }
-                && TryValidateShare(capabilities.SmbShare))
-                return capabilities;
+                if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                    return TransferCapabilities.LegacyHttp;
 
-            // Unknown modes and protocol versions are not safe to interpret as SMB.
-            return TransferCapabilities.LegacyHttp;
+                response.EnsureSuccessStatusCode();
+                var capabilities = await response.Content.ReadFromJsonAsync<TransferCapabilities>(
+                    cancellationToken: cancellationToken);
+                if (capabilities is { ProtocolVersion: 1, DownloadMode: "smb" }
+                    && TryValidateShare(capabilities.SmbShare))
+                    return capabilities;
+
+                throw new InvalidDataException(
+                    "Der Server hat einen unbekannten Downloadmodus oder eine ungültige SMB-Freigabe gemeldet.");
+            }
+            catch (Exception ex) when (
+                (ex is HttpRequestException || ex is TaskCanceledException && !cancellationToken.IsCancellationRequested)
+                && attempt < 2)
+            {
+                await Task.Delay(TimeSpan.FromMilliseconds(500 * (attempt + 1)), cancellationToken);
+            }
         }
-        catch (HttpRequestException)
-        {
-            return TransferCapabilities.LegacyHttp;
-        }
-        catch (System.Text.Json.JsonException)
-        {
-            return TransferCapabilities.LegacyHttp;
-        }
+
+        throw new HttpRequestException("Die Downloadfähigkeiten des Servers konnten nicht ermittelt werden.");
     }
 
     internal static string ResolveSmbPackagePath(TransferCapabilities capabilities, string relativePath)
