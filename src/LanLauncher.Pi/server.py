@@ -69,8 +69,45 @@ class Handler(BaseHTTPRequestHandler):
         self.wfile.write(payload)
 
     def body(self):
-        size = int(self.headers.get("Content-Length", "-1"))
-        if size < 0 or size > 65536:
+        # .NET HttpClient may send JSON with Transfer-Encoding: chunked instead
+        # of Content-Length. Decode it with strict size and framing limits.
+        max_size = 65536
+        transfer_encoding = self.headers.get("Transfer-Encoding", "").lower().strip()
+        content_length = self.headers.get("Content-Length")
+        if transfer_encoding:
+            if transfer_encoding != "chunked" or content_length is not None:
+                raise ValueError("Nicht unterstützte HTTP-Übertragung.")
+            data = bytearray()
+            while True:
+                line = self.rfile.readline(128)
+                if not line.endswith(b"\\r\\n"):
+                    raise ValueError("Ungültige Chunk-Kodierung.")
+                try:
+                    size = int(line[:-2].split(b";", 1)[0], 16)
+                except ValueError as exc:
+                    raise ValueError("Ungültige Chunk-Größe.") from exc
+                if size < 0 or len(data) + size > max_size:
+                    raise ValueError("Ungültige Anfragegröße.")
+                if size == 0:
+                    # Consume trailer fields, bounded to avoid hanging on malformed input.
+                    for _ in range(16):
+                        trailer = self.rfile.readline(1024)
+                        if trailer == b"\\r\\n":
+                            break
+                        if not trailer.endswith(b"\\r\\n"):
+                            raise ValueError("Ungültiger Chunk-Abschluss.")
+                    else:
+                        raise ValueError("Zu viele HTTP-Trailer.")
+                    break
+                data.extend(self.rfile.read(size))
+                if self.rfile.read(2) != b"\\r\\n":
+                    raise ValueError("Ungültiger Chunk-Abschluss.")
+            return json.loads(data)
+        try:
+            size = int(content_length) if content_length is not None else -1
+        except ValueError as exc:
+            raise ValueError("Ungültige Anfragegröße.") from exc
+        if size < 0 or size > max_size:
             raise ValueError("Ungültige Anfragegröße.")
         return json.loads(self.rfile.read(size))
 
