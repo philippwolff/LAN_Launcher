@@ -980,36 +980,14 @@ public partial class MainWindow : Window
             else
             {
                 using var downloadClient = new HttpClient { Timeout = Timeout.InfiniteTimeSpan };
-                using var response = await downloadClient.GetAsync(
-                    server + "/api/games/" + Uri.EscapeDataString(game.Id) + "/package?clientId=" + Uri.EscapeDataString(clientId),
-                    HttpCompletionOption.ResponseHeadersRead, popup.Cancellation);
-                response.EnsureSuccessStatusCode();
-    
-                fileName = response.Content.Headers.ContentDisposition?.FileNameStar
-                    ?? response.Content.Headers.ContentDisposition?.FileName?.Trim('"')
-                    ?? "";
+                fileName = await GamePackageTransfer.DownloadAsync(
+                    downloadClient, server!, game.Id, tempPackage,
+                    (received, total) => popup.Update(received, total, showDownloadSpeed: true),
+                    popup.Cancellation, clientId);
                 extension = Path.GetExtension(fileName).ToLowerInvariant();
                 if (extension is not (".zip" or ".exe"))
                     throw new InvalidDataException("Der Server hat keinen gültigen ZIP-/EXE-Dateityp übermittelt.");
-    
-                await using (var input = await response.Content.ReadAsStreamAsync(popup.Cancellation))
-                await using (var output = new FileStream(tempPackage, FileMode.CreateNew, FileAccess.Write,
-                    FileShare.None, 128 * 1024, useAsync: true))
-                {
-                    var total = response.Content.Headers.ContentLength;
-                    var buffer = new byte[128 * 1024];
-                    long received = 0;
-                    int count;
-                    while ((count = await input.ReadAsync(buffer, popup.Cancellation)) > 0)
-                    {
-                        await output.WriteAsync(buffer.AsMemory(0, count), popup.Cancellation);
-                        received += count;
-                        popup.Update(received, total, showDownloadSpeed: true);
-                    }
-                    await output.FlushAsync(popup.Cancellation);
-                    if (total.HasValue && received != total.Value)
-                        throw new IOException("Der Download ist unvollständig.");
-                }
+
     
             }
             popup.Cancellation.ThrowIfCancellationRequested();
@@ -1255,30 +1233,19 @@ public partial class MainWindow : Window
         try
         {
             using var downloadClient = new HttpClient { Timeout = Timeout.InfiniteTimeSpan };
-            using var response = await downloadClient.GetAsync(server + "/api/games/" + Uri.EscapeDataString(game.Id) + "/package",
-                HttpCompletionOption.ResponseHeadersRead, popup.Cancellation);
-            response.EnsureSuccessStatusCode();
-            var suggested = response.Content.Headers.ContentDisposition?.FileNameStar
-                ?? response.Content.Headers.ContentDisposition?.FileName?.Trim('"')
-                ?? (game.Name + ".zip");
+            var suggested = await GamePackageTransfer.GetPackageNameAsync(
+                downloadClient, server, game.Id, popup.Cancellation);
             Directory.CreateDirectory(settings.DownloadDirectory);
             var dialog = new SaveFileDialog { FileName = suggested, InitialDirectory = settings.DownloadDirectory, Filter = "Alle Dateien|*.*" };
             if (dialog.ShowDialog() != true) { StatusText.Text = "Download abgebrochen."; return; }
             outputPath = dialog.FileName;
             temporaryPath = outputPath + ".part";
-            await using var input = await response.Content.ReadAsStreamAsync(popup.Cancellation);
-            await using var output = File.Create(temporaryPath);
-            var total = response.Content.Headers.ContentLength;
-            var buffer = new byte[128 * 1024];
-            long received = 0;
-            int count;
-            while ((count = await input.ReadAsync(buffer, popup.Cancellation)) != 0)
-            {
-                await output.WriteAsync(buffer.AsMemory(0, count), popup.Cancellation);
-                received += count;
-                popup.Update(received, total);
-            }
-            await output.FlushAsync(popup.Cancellation);
+            if (File.Exists(temporaryPath))
+                throw new IOException("Eine unvollständige Download-Datei existiert bereits: " + temporaryPath);
+            await GamePackageTransfer.DownloadAsync(
+                downloadClient, server, game.Id, temporaryPath,
+                (received, total) => popup.Update(received, total, showDownloadSpeed: true),
+                popup.Cancellation, clientId);
             popup.Cancellation.ThrowIfCancellationRequested();
             File.Move(temporaryPath, outputPath, true);
             completed = true;
