@@ -269,8 +269,8 @@ def main():
     if not args.admin_key_file.is_file():
         parser.error("Admin-Schlüsseldatei fehlt.")
     key = args.admin_key_file.read_text(encoding="utf-8").strip()
-    if len(key) < 24:
-        parser.error("Admin-Schlüssel muss mindestens 24 Zeichen haben.")
+    if len(key) < 8:
+        parser.error("Admin-Schlüssel muss mindestens 8 Zeichen haben.")
     server = ThreadingHTTPServer((args.host, args.port), Handler)
     server.daemon_threads = True
     server.root = args.root.resolve()
