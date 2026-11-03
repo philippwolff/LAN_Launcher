@@ -279,8 +279,50 @@ class Handler(BaseHTTPRequestHandler):
         except FileNotFoundError as exc:
             return self.send_json(404, {"error": str(exc)})
 
+    def do_DELETE(self):
+        match = re.fullmatch(r"/api/admin/games/([^/]+)", urlsplit(self.path).path)
+        if not match:
+            return self.send_json(404, {"error": "Unbekannter Endpunkt"})
+        if not self.authorized():
+            return self.send_json(401, {"error": "Admin-Schlüssel ungültig"})
+        game_id = unquote(match.group(1))
+        with LOCK:
+            games = self.games()
+            remaining = [game for game in games if game.get("id") != game_id]
+            if len(remaining) == len(games):
+                return self.send_json(404, {"error": "Spiel nicht gefunden"})
+            write_json(self.server.catalog_path, remaining)
+        # Keep NAS packages untouched to avoid accidental irreversible deletion.
+        return self.send_json(200, {"removed": game_id, "packageDeleted": False})
+
     def do_PUT(self):
         path = urlsplit(self.path).path
+        metadata_match = re.fullmatch(r"/api/admin/games/([^/]+)/metadata", path)
+        if metadata_match:
+            if not self.authorized():
+                return self.send_json(401, {"error": "Admin-Schlüssel ungültig"})
+            try:
+                data = self.body()
+                if not isinstance(data, dict):
+                    raise ValueError("Ungültige Metadaten.")
+                name, version, description = data.get("name"), data.get("version"), data.get("description")
+                if not isinstance(name, str) or not 1 <= len(name.strip()) <= 150:
+                    raise ValueError("Spielname muss 1 bis 150 Zeichen enthalten.")
+                if not isinstance(version, str) or not 1 <= len(version.strip()) <= 60:
+                    raise ValueError("Version muss 1 bis 60 Zeichen enthalten.")
+                if not isinstance(description, str) or len(description) > 5000:
+                    raise ValueError("Beschreibung darf höchstens 5000 Zeichen enthalten.")
+                game_id = unquote(metadata_match.group(1))
+                with LOCK:
+                    games = self.games()
+                    game = next((g for g in games if g.get("id") == game_id), None)
+                    if game is None:
+                        return self.send_json(404, {"error": "Spiel nicht gefunden"})
+                    game.update(name=name.strip(), version=version.strip(), description=description)
+                    write_json(self.server.catalog_path, games)
+                return self.send_json(200, game)
+            except (ValueError, TypeError, json.JSONDecodeError) as exc:
+                return self.send_json(400, {"error": str(exc)})
         match = re.fullmatch(r"/api/admin/games/([^/]+)/(test-status|start-notice|tags|mod|launch-options|launch-path)", path)
         if not match:
             return self.send_json(404, {"error": "Unbekannter Endpunkt"})
