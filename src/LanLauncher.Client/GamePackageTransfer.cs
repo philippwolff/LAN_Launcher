@@ -48,7 +48,7 @@ internal static class GamePackageTransfer
     private static async Task<string?> ResolveSourceAsync(
         HttpClient client, string server, string gameId, CancellationToken token)
     {
-        var capabilities = await ServerTransferResolver.DetectAsync(client, token);
+        var capabilities = await ServerTransferResolver.DetectAsync(client, server, token);
         if (capabilities.DownloadMode != "smb") return null;
         using var response = await client.GetAsync(
             server.TrimEnd('/') + "/api/games/" + Uri.EscapeDataString(gameId) + "/package-location",
