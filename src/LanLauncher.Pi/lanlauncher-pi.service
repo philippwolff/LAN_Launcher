@@ -6,7 +6,7 @@ RequiresMountsFor=/mnt/lanlauncher-nas
 
 [Service]
 Type=simple
-User=root
+User=admin
 WorkingDirectory=/opt/lanlauncher-pi
 ExecStart=/usr/bin/python3 /opt/lanlauncher-pi/server.py --admin-key-file /etc/lanlauncher/admin-key
 Restart=on-failure
