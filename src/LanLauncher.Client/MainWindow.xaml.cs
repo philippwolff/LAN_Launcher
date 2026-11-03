@@ -11,13 +11,15 @@ using LanLauncher.Shared;
 namespace LanLauncher.Client;
 public partial class MainWindow : Window
 {
-    private readonly HttpClient http = new() { Timeout = TimeSpan.FromSeconds(5) };
-    private readonly DispatcherTimer timer = new() { Interval = TimeSpan.FromSeconds(10) };
+    private readonly HttpClient http = new() { Timeout = TimeSpan.FromSeconds(15) };
+    private readonly DispatcherTimer timer = new() { Interval = TimeSpan.FromSeconds(20) };
     private readonly string clientId = Guid.NewGuid().ToString("N");
     private string? server;
     private LauncherSettings settings = LauncherSettings.Load();
     private bool updatingGames;
     private bool serverConnected;
+    private bool refreshInProgress;
+    private int consecutiveRefreshFailures;
 
     private LauncherRelease? availableUpdate;
     private bool checkingUpdates;
@@ -155,7 +157,8 @@ public partial class MainWindow : Window
     }
     private async Task RefreshAsync()
     {
-        if (server is null || !serverConnected) return;
+        if (server is null || !serverConnected || refreshInProgress) return;
+        refreshInProgress = true;
         try
         {
             await UpdatePresenceAsync();
@@ -184,9 +187,16 @@ public partial class MainWindow : Window
                 p.Name + " — " + (p.Status == "Im Spiel" && p.GameId is not null
                     ? "Spielt: " + (gameNames.TryGetValue(p.GameId, out var title) ? title : p.GameId)
                     : "Online")).ToArray();
+            consecutiveRefreshFailures = 0;
             StatusText.Text = "Verbunden — " + players.Length + " Spieler online";
         }
-        catch (Exception ex) { serverConnected = false; ShowOfflineLibrary("Server nicht erreichbar – Offline-Modus: " + ex.Message); }
+        catch (Exception ex)
+        {
+            consecutiveRefreshFailures++;
+            StatusText.Text = "Verbindung vorübergehend gestört (Versuch " + consecutiveRefreshFailures + ") – erneuter Abruf folgt: " + ex.Message;
+            // Keep the last known library and retry on the next timer tick.
+        }
+        finally { refreshInProgress = false; }
     }
     private bool IsGameInstalled(GameInfo game)
     {
