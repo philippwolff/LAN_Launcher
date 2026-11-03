@@ -20,13 +20,14 @@ einem separaten schreibgeschützten NAS-Konto Zugriff besitzen.
 
 ## Implementierungsstand
 
-- Vorhanden: `ServerTransferResolver` mit optionaler Erkennung, HTTP-Fallback
-  und Prüfung relativer SMB-Pfade.
-- Noch offen: Resolver in den bestehenden Download-/Installationsablauf einbinden,
-  Fortschritt und Downloadrate beim Kopieren messen, Paketpfade über die API
-  bereitstellen, Raspberry-Pi-ARMv6-Server erstellen, Admin-Uploads und Tests.
-- Bis zur vollständigen Integration bleibt das Verhalten des bestehenden Clients
-  unverändert.
+- Vorhanden: `ServerTransferResolver` und `GamePackageTransfer`; die Download- und
+  Installationspfade im Client nutzen beide die neue Transportauswahl.
+- Der Pi-Server muss `GET /api/capabilities` und
+  `GET /api/games/{id}/package-location` bereitstellen. Letzterer antwortet mit
+  `{ "relativePath": "Games/beispiel.zip" }` relativ zur angegebenen SMB-Freigabe.
+- Noch offen: Raspberry-Pi-ARMv6-Server, NAS-Paketregistrierung, Admin-Uploads,
+  separate NAS-Leseberechtigungen und Tests unter Windows.
+- Bis der Pi-Server existiert, nutzt der Client den bisherigen HTTP-Download.
 - Der bisherige Windows-Server und seine Bandbreitenoptionen werden nicht geändert.
 
 ## Geplante Ablage auf NAS4Free
