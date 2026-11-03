@@ -89,3 +89,35 @@ Bibliotheks-Synchronisierung, vollständige Metadatenvalidierung,
 separater Dienstbenutzer, systemd-Autostart und Ende-zu-Ende-Tests.
 Diese Version ist nur für ein vertrauenswürdiges LAN und erste Tests
 gedacht. Der Windows-Server bleibt unverändert.
+
+## Weboberfläche und automatischer Start (Testphase)
+
+Nach einem `git pull` und Serverneustart ist das Dashboard unter
+`http://LanLauncherServer.local:8080/admin` erreichbar. Den Admin-Schlüssel
+im Eingabefeld angeben; er wird nur im Arbeitsspeicher der geöffneten Seite
+gehalten. Dashboard und API sind über denselben HTTP-Server erreichbar.
+**Achtung:** HTTP ist unverschlüsselt; das Admin-Dashboard nur im vertrauenswürdigen
+LAN verwenden. Für einen dauerhaften Betrieb sollten wir TLS bzw. einen
+gesicherten Verwaltungszugang ergänzen.
+
+Wenn der manuelle Test erfolgreich ist, den laufenden Server mit Strg+C
+beenden und die systemd-Einheit installieren:
+
+```bash
+sudo cp ~/LAN_Launcher/src/LanLauncher.Pi/lanlauncher-pi.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now lanlauncher-pi.service
+sudo systemctl status lanlauncher-pi.service --no-pager
+```
+
+Status und Logs:
+
+```bash
+sudo journalctl -u lanlauncher-pi.service -n 50 --no-pager
+```
+
+Der Dienst nutzt vorläufig root für den Zugriff auf die geschützte
+Admin-Schlüsseldatei und den NAS-Mount. Er erhält durch systemd bereits
+einige Einschränkungen. Ein eigener Dienstbenutzer ist geplant.
+Bei einem anderen Checkout-Pfad als `/home/admin/LAN_Launcher` muss die
+Einheit entsprechend angepasst werden.
