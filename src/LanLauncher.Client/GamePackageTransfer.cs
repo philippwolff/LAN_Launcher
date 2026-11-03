@@ -30,10 +30,21 @@ internal static class GamePackageTransfer
         var source = await ResolveSourceAsync(client, server, gameId, token);
         if (source is not null)
         {
-            await using var input = new FileStream(source, FileMode.Open, FileAccess.Read,
-                FileShare.Read, 128 * 1024, useAsync: true);
-            await CopyAsync(input, destination, input.Length, progress, token);
-            return Path.GetFileName(source);
+            try
+            {
+                await using var input = new FileStream(source, FileMode.Open, FileAccess.Read,
+                    FileShare.Read, 128 * 1024, useAsync: true);
+                await CopyAsync(input, destination, input.Length, progress, token);
+                return Path.GetFileName(source);
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                throw new IOException(SmbAccessHelp.Explain(ex, source, write: false), ex);
+            }
+            catch (IOException ex) when (ex is not FileNotFoundException)
+            {
+                throw new IOException(SmbAccessHelp.Explain(ex, source, write: false), ex);
+            }
         }
 
         var url = PackageUrl(server, gameId) + (clientId is null ? "" : "?clientId=" + Uri.EscapeDataString(clientId));
@@ -60,7 +71,9 @@ internal static class GamePackageTransfer
             ?? throw new InvalidDataException("Der NAS-Server hat keinen Paketpfad geliefert.");
         var path = ServerTransferResolver.ResolveSmbPackagePath(capabilities, location.RelativePath);
         if (!File.Exists(path)) throw new FileNotFoundException(
-            "NAS-Paket nicht erreichbar. Bitte SMB-Leserechte und NAS-Verbindung prüfen.", path);
+            "NAS-Paket nicht erreichbar. Prüfe die SMB-Verbindung unter Windows und melde dich " +
+            "gegebenenfalls mit launcher_reader an. Andere SMB-Sitzungen zum selben NAS-Server " +
+            "können eine Anmeldung mit anderem Konto verhindern.", path);
         return path;
     }
 
