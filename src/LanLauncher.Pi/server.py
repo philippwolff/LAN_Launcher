@@ -19,7 +19,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import unquote, urlsplit
 
 DEFAULT_ROOT = Path("/mnt/lanlauncher-nas")
-DEFAULT_SHARE = r"\\192.168.68.250\Daten\LANLauncher"
+DEFAULT_SHARE = r"\\\\192.168.68.250\Daten"
 GAME_ID = re.compile(r"^[A-Za-z0-9_-]{1,100}$")
 PLAYERS = {}
 LOCK = threading.RLock()
