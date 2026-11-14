@@ -167,7 +167,13 @@ public partial class MainWindow : Window
                 }
                 verifiedAdminKey = suppliedKey;
             }
-            var response = await http.PostAsJsonAsync(server + "/api/join", new JoinRequest(name, clientId));
+            using var joinRequest = new HttpRequestMessage(HttpMethod.Post, server + "/api/join")
+            {
+                Content = JsonContent.Create(new JoinRequest(name, clientId))
+            };
+            if (verifiedAdminKey is not null)
+                joinRequest.Headers.Add("X-Admin-Key", verifiedAdminKey);
+            using var response = await http.SendAsync(joinRequest);
             if (!response.IsSuccessStatusCode)
             {
                 serverConnected = false;
