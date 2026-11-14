@@ -9,6 +9,7 @@ public sealed class LauncherSettings
     public Dictionary<string, string> InstallerTypes { get; set; } = new();
     public Dictionary<string, LanLauncher.Shared.GameInfo> KnownGames { get; set; } = new();
     public string? LastOpenedGameId { get; set; }
+    public string? LastSuccessfulServer { get; set; }
     public Dictionary<string, string> InstalledExecutables { get; set; } = new();
     public Dictionary<string, List<GameLaunchOption>> AdditionalExecutables { get; set; } = new();
     public Dictionary<string, string> CompatibilityModes { get; set; } = new();
