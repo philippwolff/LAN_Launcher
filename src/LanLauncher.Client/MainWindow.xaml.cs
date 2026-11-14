@@ -542,25 +542,12 @@ public partial class MainWindow : Window
         if (uninstallers.Count > 0)
         {
             var uninstaller = uninstallers.OrderBy(x => x).First();
-            if (MessageBox.Show(this,
-                "Das Deinstallationsprogramm des Spiels starten?\n\n" + uninstaller +
-                "\n\nDer Deinstallationsassistent entscheidet, welche Dateien entfernt werden.",
-                "Spiel deinstallieren", MessageBoxButton.YesNo, MessageBoxImage.Warning,
-                MessageBoxResult.No) != MessageBoxResult.Yes) return;
-            try
-            {
-                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(uninstaller)
-                {
-                    UseShellExecute = true,
-                    WorkingDirectory = Path.GetDirectoryName(uninstaller)!
-                });
-                StatusText.Text = "Deinstallationsassistent gestartet: " + game.Name;
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(this, "Deinstallationsprogramm konnte nicht gestartet werden:\n" + ex.Message,
-                    "Fehler", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
+            var window = new UninstallProgressWindow(game.Name,
+                "Der offizielle Deinstallationsassistent wird gestartet. " +
+                "Er entscheidet, welche Dateien entfernt werden. Der NAS-Katalog bleibt unverändert.\n" +
+                uninstaller, null, uninstaller, () => { }) { Owner = this };
+            window.ShowDialog();
+            UpdateSelectedGameActions();
             return;
         }
 
@@ -590,24 +577,17 @@ public partial class MainWindow : Window
             return;
         }
 
-        if (MessageBox.Show(this,
-            "Den lokal installierten Spielordner vollständig löschen?\n\n" + folder +
-            "\n\nDies kann auch Spielstände und eigene Dateien im Ordner löschen. " +
-            "Das Spielpaket auf dem Server bleibt erhalten.",
-            "Spiel deinstallieren", MessageBoxButton.YesNo, MessageBoxImage.Warning,
-            MessageBoxResult.No) != MessageBoxResult.Yes) return;
-        try
-        {
-            Directory.Delete(folder, recursive: true);
-            settings.InstalledExecutables.Remove(game.Id);
-            settings.Save();
-            StatusText.Text = "Spiel lokal deinstalliert: " + game.Name;
-        }
-        catch (Exception ex)
-        {
-            MessageBox.Show(this, "Spielordner konnte nicht gelöscht werden:\n" + ex.Message,
-                "Deinstallation fehlgeschlagen", MessageBoxButton.OK, MessageBoxImage.Error);
-        }
+        var progressWindow = new UninstallProgressWindow(game.Name,
+            "Der lokale Spielordner wird vollständig gelöscht. Dies kann Spielstände und " +
+            "eigene Dateien im Ordner betreffen. Das Spielpaket auf dem NAS bleibt erhalten.\n" +
+            folder, folder, null, () =>
+            {
+                settings.InstalledExecutables.Remove(game.Id);
+                settings.Save();
+                StatusText.Text = "Spiel lokal deinstalliert: " + game.Name;
+                UpdateSelectedGameActions();
+            }) { Owner = this };
+        progressWindow.ShowDialog();
     }
 
     private async void OpenGameSettings(GameInfo game)
