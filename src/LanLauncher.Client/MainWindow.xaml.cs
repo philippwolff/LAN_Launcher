@@ -114,6 +114,8 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        if (!string.IsNullOrWhiteSpace(settings.LastSuccessfulServer))
+            ServerBox.Text = settings.LastSuccessfulServer;
         try
         {
             var versionFile = Path.Combine(AppContext.BaseDirectory, "launcher-version.txt");
@@ -149,6 +151,8 @@ public partial class MainWindow : Window
                 return;
             }
             serverConnected = true;
+            settings.LastSuccessfulServer = server;
+            settings.Save();
             string? nasWarning = null;
             try
             {
