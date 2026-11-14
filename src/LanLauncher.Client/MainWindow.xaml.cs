@@ -18,6 +18,7 @@ public partial class MainWindow : Window
     private LauncherSettings settings = LauncherSettings.Load();
     private bool updatingGames;
     private bool serverConnected;
+    private string? activeAdminKey;
     private bool refreshInProgress;
     private int consecutiveRefreshFailures;
 
@@ -130,6 +131,14 @@ public partial class MainWindow : Window
         SelectFirstGameIfNeeded();
         Loaded += async (_, _) => { ThemeManager.Apply(settings.DarkMode); await CheckForUpdatesAsync(); };
     }
+    private void ConnectAsAdmin_Changed(object sender, RoutedEventArgs e)
+    {
+        if (LoginAdminKeyBox is null) return;
+        LoginAdminKeyBox.Visibility = ConnectAsAdminBox.IsChecked == true
+            ? Visibility.Visible : Visibility.Collapsed;
+        if (ConnectAsAdminBox.IsChecked != true) LoginAdminKeyBox.Clear();
+    }
+
     private async void Connect_Click(object sender, RoutedEventArgs e)
     {
         try
@@ -139,6 +148,25 @@ public partial class MainWindow : Window
             server = address.TrimEnd('/');
             var name = NameBox.Text.Trim();
             if (name.Length is < 2 or > 32) { StatusText.Text = "Benutzername: 2–32 Zeichen."; return; }
+            string? verifiedAdminKey = null;
+            if (ConnectAsAdminBox.IsChecked == true)
+            {
+                var suppliedKey = LoginAdminKeyBox.Password;
+                if (string.IsNullOrWhiteSpace(suppliedKey))
+                {
+                    StatusText.Text = "Bitte den Admin-Schlüssel oben eingeben.";
+                    return;
+                }
+                using var adminCheck = new HttpRequestMessage(HttpMethod.Get, server + "/api/admin/check");
+                adminCheck.Headers.Add("X-Admin-Key", suppliedKey);
+                using var adminResponse = await http.SendAsync(adminCheck);
+                if (!adminResponse.IsSuccessStatusCode)
+                {
+                    StatusText.Text = "Admin-Anmeldung abgelehnt (HTTP " + (int)adminResponse.StatusCode + ").";
+                    return;
+                }
+                verifiedAdminKey = suppliedKey;
+            }
             var response = await http.PostAsJsonAsync(server + "/api/join", new JoinRequest(name, clientId));
             if (!response.IsSuccessStatusCode)
             {
@@ -151,6 +179,8 @@ public partial class MainWindow : Window
                 return;
             }
             serverConnected = true;
+            activeAdminKey = verifiedAdminKey;
+            AdminGamesGroup.IsEnabled = activeAdminKey is not null;
             settings.LastSuccessfulServer = server;
             settings.Save();
             string? nasWarning = null;
@@ -353,7 +383,7 @@ public partial class MainWindow : Window
             MessageBox.Show(this, "Bitte zuerst mit dem Server verbinden.", "Spieltest");
             return;
         }
-        if (string.IsNullOrWhiteSpace(AdminKeyBox.Password))
+        if (string.IsNullOrWhiteSpace(activeAdminKey))
         {
             MessageBox.Show(this, "Bitte den Admin-Schlüssel eingeben.", "Spieltest");
             return;
@@ -756,7 +786,7 @@ public partial class MainWindow : Window
     private async Task UploadLaunchPathAsync(GameInfo game, string executable)
     {
         if (server is null || string.IsNullOrWhiteSpace(executable) ||
-            string.IsNullOrWhiteSpace(AdminKeyBox.Password)) return;
+            string.IsNullOrWhiteSpace(activeAdminKey)) return;
         var folder = GameExecutableFinder.GetInstallFolder(settings.InstallDirectory, game.Name);
         var relative = Path.GetRelativePath(folder, executable);
         if (Path.IsPathRooted(relative) || relative == ".." ||
@@ -772,7 +802,7 @@ public partial class MainWindow : Window
     private HttpRequestMessage AdminRequest(HttpMethod method, string endpoint)
     {
         var request = new HttpRequestMessage(method, server + endpoint);
-        request.Headers.Add("X-Admin-Key", AdminKeyBox.Password);
+        request.Headers.Add("X-Admin-Key", activeAdminKey ?? "");
         return request;
     }
     private async void Inbox_Click(object sender, RoutedEventArgs e)
