@@ -239,10 +239,10 @@ class Handler(BaseHTTPRequestHandler):
                            and time.monotonic() - p["seen"] < 45 for key, p in PLAYERS.items()):
                         return self.send_json(409, {"error": "Name bereits online"})
                     PLAYERS[client_id] = {
-                        "name": name, "role": "User", "status": "Online",
+                        "name": name, "role": ("Admin" if self.authorized() else "User"), "status": "Online",
                         "gameId": None, "seen": time.monotonic()
                     }
-                return self.send_json(200, {"name": name, "role": "User", "clientId": client_id})
+                return self.send_json(200, {"name": name, "role": ("Admin" if self.authorized() else "User"), "clientId": client_id})
             if path == "/api/status":
                 client_id, status = data.get("clientId"), data.get("status")
                 if status not in ("Online", "Im Spiel"):
