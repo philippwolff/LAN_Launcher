@@ -10,32 +10,34 @@ public partial class TransferProgressWindow : Window
     private readonly System.Diagnostics.Stopwatch speedClock = System.Diagnostics.Stopwatch.StartNew();
     private long lastSampleBytes;
     private double lastSampleSeconds;
-    private double downloadBytesPerSecond;
+    private double transferBytesPerSecond;
+    private readonly string transferDirection;
     public CancellationToken Cancellation => cancellation.Token;
     public TransferProgressWindow(string title)
     {
         InitializeComponent();
         TransferTitle.Text = title;
+        transferDirection = title.StartsWith("Upload:", StringComparison.OrdinalIgnoreCase) ? "Upload" : "Download";
         TransferBar.IsIndeterminate = true;
         TransferDetails.Text = "Übertragung wird vorbereitet …";
     }
     public void Update(long bytes, long? total, bool showDownloadSpeed = false)
     {
         if (finishing) return;
-        if (showDownloadSpeed)
+        // Measure upload and download alike, using transferred bytes over elapsed time.
         {
             var elapsed = speedClock.Elapsed.TotalSeconds;
             var delta = elapsed - lastSampleSeconds;
             if (delta >= 0.5)
             {
                 var instant = Math.Max(0, bytes - lastSampleBytes) / delta;
-                downloadBytesPerSecond = lastSampleSeconds == 0 ? instant :
-                    downloadBytesPerSecond * 0.6 + instant * 0.4;
+                transferBytesPerSecond = lastSampleSeconds == 0 ? instant :
+                    transferBytesPerSecond * 0.6 + instant * 0.4;
                 lastSampleBytes = bytes;
                 lastSampleSeconds = elapsed;
             }
         }
-        var speedText = showDownloadSpeed ? $"  –  Download: {downloadBytesPerSecond / 1048576.0:0.00} MiB/s" : "";
+        var speedText = $"  –  {transferDirection}: {transferBytesPerSecond / 1_000_000.0:0.00} MB/s";
         if (total is > 0)
         {
             var percent = Math.Clamp(bytes * 100.0 / total.Value, 0, 100);
