@@ -141,6 +141,8 @@ public partial class MainWindow : Window
 
     private async void Connect_Click(object sender, RoutedEventArgs e)
     {
+        activeAdminKey = null;
+        AdminGamesGroup.IsEnabled = false;
         try
         {
             var address = ServerBox.Text.Trim();
