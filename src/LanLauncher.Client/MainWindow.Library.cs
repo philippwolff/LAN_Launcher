@@ -11,7 +11,7 @@ public partial class MainWindow
 {
     private async Task<bool> CheckLibraryAdminAsync()
     {
-        if (server is null || string.IsNullOrWhiteSpace(AdminKeyBox.Password))
+        if (server is null || string.IsNullOrWhiteSpace(activeAdminKey))
         {
             MessageBox.Show(this, "Bitte zuerst verbinden und einen Admin-Schlüssel eingeben.",
                 "Serverbibliothek", MessageBoxButton.OK, MessageBoxImage.Warning);
