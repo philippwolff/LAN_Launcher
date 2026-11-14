@@ -30,7 +30,7 @@ internal static class ThemeManager
              parent = VisualTreeHelper.GetParent(parent))
         {
             if (parent is ComboBox combo &&
-                (combo.Name == "PlayerFilter" || combo.Name == "GenreFilter"))
+                (combo.Name == "PlayerFilter" || combo.Name == "GenreFilter" || combo.Name == "UploadBaseGameBox" || combo.Name == "InboxFiles"))
                 return true;
         }
         return false;
@@ -53,7 +53,7 @@ internal static class ThemeManager
                     installerList.Background = Brush("#FFFFFF");
                     installerList.Foreground = Brush("#000000");
                 }
-                if (control is ComboBox combo && (combo.Name == "PlayerFilter" || combo.Name == "GenreFilter"))
+                if (control is ComboBox combo && (combo.Name == "PlayerFilter" || combo.Name == "GenreFilter" || combo.Name == "UploadBaseGameBox" || combo.Name == "InboxFiles"))
                 {
                     // Filter boxes keep their light native background even in dark mode.
                     // Force dark text on both the selection and generated dropdown items.
