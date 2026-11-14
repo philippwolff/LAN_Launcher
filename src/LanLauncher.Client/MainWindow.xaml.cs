@@ -246,7 +246,7 @@ public partial class MainWindow : Window
                 .GroupBy(g => g.Id, StringComparer.OrdinalIgnoreCase)
                 .ToDictionary(g => g.Key, g => g.First().Name, StringComparer.OrdinalIgnoreCase);
             PlayersList.ItemsSource = players.Select(p =>
-                p.Name + " — " + (p.Status == "Im Spiel" && p.GameId is not null
+                p.Name + (string.Equals(p.Role, "Admin", StringComparison.OrdinalIgnoreCase) ? " (Admin)" : "") + " — " + (p.Status == "Im Spiel" && p.GameId is not null
                     ? "Spielt: " + (gameNames.TryGetValue(p.GameId, out var title) ? title : p.GameId)
                     : "Online")).ToArray();
             consecutiveRefreshFailures = 0;
