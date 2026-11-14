@@ -22,7 +22,7 @@ public partial class MainWindow
     {
         try
         {
-            if (server is null || string.IsNullOrWhiteSpace(AdminKeyBox.Password))
+            if (server is null || string.IsNullOrWhiteSpace(activeAdminKey))
             {
                 MessageBox.Show(this, "Bitte zuerst verbinden und den Admin-Schlüssel eingeben.");
                 return;
