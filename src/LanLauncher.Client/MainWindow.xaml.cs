@@ -149,7 +149,27 @@ public partial class MainWindow : Window
                 return;
             }
             serverConnected = true;
-            StatusText.Text = "Verbunden als " + name;
+            string? nasWarning = null;
+            try
+            {
+                var capabilities = await ServerTransferResolver.DetectAsync(http, server);
+                if (capabilities.DownloadMode == "smb" && !string.IsNullOrWhiteSpace(capabilities.SmbShare))
+                {
+                    var share = capabilities.SmbShare;
+                    await Task.Run(() => NasShareConnection.EnsureConnected(share));
+                }
+            }
+            catch (Exception ex)
+            {
+                // Keep server login active even if the optional NAS share cannot be mounted.
+                nasWarning = ex.Message;
+            }
+            StatusText.Text = nasWarning is null
+                ? "Verbunden als " + name + " – NAS-Verbindung geprüft"
+                : "Verbunden als " + name + " – NAS: " + nasWarning;
+            if (nasWarning is not null)
+                MessageBox.Show(this, nasWarning, "NAS-Verbindung nicht verfügbar",
+                    MessageBoxButton.OK, MessageBoxImage.Warning);
             timer.Start();
             await RefreshAsync();
         }
