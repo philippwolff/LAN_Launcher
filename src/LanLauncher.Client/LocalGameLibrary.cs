@@ -23,7 +23,15 @@ internal static class LocalGameLibrary
                 return true;
             var folder = GameExecutableFinder.GetInstallFolder(settings.InstallDirectory, game.Name);
             return GameExecutableFinder.FindBest(folder, game.Name) is not null;
-        }).ToArray();
+        })
+        // Multiple historical catalog IDs may refer to the same installed game.
+        // Keep only one visible local entry, without deleting stored game metadata.
+        .GroupBy(g => g.Name.Trim(), StringComparer.OrdinalIgnoreCase)
+        .Select(group => group
+            .OrderByDescending(g => settings.InstalledExecutables.TryGetValue(g.Id, out var exe) && File.Exists(exe))
+            .ThenBy(g => g.Id, StringComparer.OrdinalIgnoreCase)
+            .First())
+        .ToArray();
         GameDisplayNameConverter.LocalOnlyIds = local.Select(g => g.Id)
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
         settings.Save();
