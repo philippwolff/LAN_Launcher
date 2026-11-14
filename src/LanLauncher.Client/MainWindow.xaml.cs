@@ -198,7 +198,7 @@ public partial class MainWindow : Window
                 if (capabilities.DownloadMode == "smb" && !string.IsNullOrWhiteSpace(capabilities.SmbShare))
                 {
                     var share = capabilities.SmbShare;
-                    await Task.Run(() => NasShareConnection.EnsureConnected(share));
+                    await Task.Run(() => NasShareConnection.EnsureConnected(share, activeAdminKey is not null));
                 }
             }
             catch (Exception ex)
