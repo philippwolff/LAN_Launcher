@@ -39,7 +39,7 @@ public partial class MainWindow
 
     private async void EditMod(GameInfo game)
     {
-        if (server is null || string.IsNullOrWhiteSpace(AdminKeyBox.Password))
+        if (server is null || string.IsNullOrWhiteSpace(activeAdminKey))
         {
             MessageBox.Show(this, "Zum Zuordnen eines Mods ist ein Admin-Schlüssel erforderlich.");
             return;
