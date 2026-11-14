@@ -1,0 +1,17 @@
+<Window x:Class="LanLauncher.Client.UninstallProgressWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Spiel deinstallieren" Width="570" Height="245"
+        WindowStartupLocation="CenterOwner" ResizeMode="NoResize">
+    <Grid Margin="18">
+        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+        <TextBlock x:Name="Heading" FontSize="16" FontWeight="Bold" TextWrapping="Wrap"/>
+        <TextBlock x:Name="Description" Grid.Row="1" Margin="0,12,0,10" TextWrapping="Wrap"/>
+        <ProgressBar x:Name="Progress" Grid.Row="2" Height="19" Minimum="0" Maximum="100"/>
+        <TextBlock x:Name="Detail" Grid.Row="3" Margin="0,8,0,0" TextWrapping="Wrap"/>
+        <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Right">
+            <Button x:Name="ConfirmButton" Content="Deinstallieren" Width="115" Margin="0,0,8,0" Click="Confirm_Click"/>
+            <Button x:Name="CloseButton" Content="Abbrechen" Width="105" Click="Close_Click"/>
+        </StackPanel>
+    </Grid>
+</Window>
