@@ -11,7 +11,7 @@ public partial class MainWindow
 
     private async void AddTags_Click(object sender, RoutedEventArgs e)
     {
-        if (server is null || string.IsNullOrWhiteSpace(AdminKeyBox.Password))
+        if (server is null || string.IsNullOrWhiteSpace(activeAdminKey))
         {
             MessageBox.Show(this, "Bitte zuerst verbinden und einen Admin-Schlüssel eingeben.",
                 "Admin erforderlich", MessageBoxButton.OK, MessageBoxImage.Warning);
@@ -50,7 +50,7 @@ public partial class MainWindow
 
     private async void EditTags(GameInfo game)
     {
-        if (server is null || string.IsNullOrWhiteSpace(AdminKeyBox.Password))
+        if (server is null || string.IsNullOrWhiteSpace(activeAdminKey))
         {
             MessageBox.Show(this, "Zum Bearbeiten der Tags ist eine Verbindung und ein Admin-Schlüssel erforderlich.",
                 "Admin erforderlich", MessageBoxButton.OK, MessageBoxImage.Warning);
