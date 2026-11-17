@@ -139,6 +139,41 @@ public partial class MainWindow : Window
         if (ConnectAsAdminBox.IsChecked != true) LoginAdminKeyBox.Clear();
     }
 
+    private async Task EnsureNasConnectedWithPromptAsync(string share, bool admin)
+    {
+        var storedPassword = NasCredentialStore.Read(share, admin);
+        try
+        {
+            await Task.Run(() => NasShareConnection.EnsureConnected(share, admin, storedPassword));
+            return;
+        }
+        catch (Exception ex) when (NasShareConnection.IsCredentialError(ex))
+        {
+            // Ask for corrected NAS credentials without ending the launcher session.
+        }
+
+        for (var attempt = 0; attempt < 3; attempt++)
+        {
+            var prompt = new NasCredentialsWindow(share, admin) { Owner = this };
+            if (prompt.ShowDialog() != true)
+                throw new OperationCanceledException("NAS-Anmeldung abgebrochen.");
+            var password = prompt.Password;
+            try
+            {
+                await Task.Run(() => NasShareConnection.EnsureConnected(share, admin, password));
+                if (prompt.SaveInWindows)
+                    NasCredentialStore.Save(share, admin, password);
+                return;
+            }
+            catch (Exception ex) when (NasShareConnection.IsCredentialError(ex))
+            {
+                MessageBox.Show(this, "NAS-Zugangsdaten abgelehnt: " + ex.Message,
+                    "NAS-Anmeldung", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+        }
+        throw new IOException("NAS-Anmeldung nach drei Versuchen fehlgeschlagen.");
+    }
+
     private async void Connect_Click(object sender, RoutedEventArgs e)
     {
         activeAdminKey = null;
@@ -198,7 +233,7 @@ public partial class MainWindow : Window
                 if (capabilities.DownloadMode == "smb" && !string.IsNullOrWhiteSpace(capabilities.SmbShare))
                 {
                     var share = capabilities.SmbShare;
-                    await Task.Run(() => NasShareConnection.EnsureConnected(share, activeAdminKey is not null));
+                    await EnsureNasConnectedWithPromptAsync(share, activeAdminKey is not null);
                 }
             }
             catch (Exception ex)
