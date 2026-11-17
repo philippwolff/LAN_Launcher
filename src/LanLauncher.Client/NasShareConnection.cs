@@ -28,7 +28,7 @@ internal static class NasShareConnection
     private static extern int WNetAddConnection2(ref NetResource resource,
         string? password, string? username, int flags);
 
-    internal static void EnsureConnected(string share, bool admin)
+    internal static void EnsureConnected(string share, bool admin, string? password = null)
     {
         var account = admin ? "launcher_admin" : "launcher_reader";
         if (Directory.Exists(share))
@@ -46,15 +46,14 @@ internal static class NasShareConnection
         var resource = new NetResource { Type = ResourceTypeDisk, RemoteName = share };
         // Explicitly request the role-specific NAS identity. Windows uses cached credentials
         // when available; no password is stored by the launcher.
-        var result = WNetAddConnection2(ref resource, null, account, 0);
+        var result = WNetAddConnection2(ref resource, password, account, 0);
         if (result != 0 && result != ErrorAlreadyAssigned)
         {
             if (result == ErrorSessionCredentialConflict)
                 throw new IOException("Eine SMB-Sitzung mit anderen NAS-Zugangsdaten ist bereits aktiv. " +
                     "Bitte die betroffene Freigabe in Windows gezielt trennen.");
-            throw new IOException("NAS-Anmeldung als " + account + " fehlgeschlagen: " +
-                new Win32Exception(result).Message + " (Fehler " + result + "). " +
-                "Bitte die Zugangsdaten für 192.168.68.250 in der Windows-Anmeldeinformationsverwaltung hinterlegen.");
+            throw new Win32Exception(result, "NAS-Anmeldung als " + account + " fehlgeschlagen: " +
+                new Win32Exception(result).Message + " (Fehler " + result + ").");
         }
 
         if (!Directory.Exists(share))
@@ -63,6 +62,9 @@ internal static class NasShareConnection
         if (admin && !CanWrite(share))
             throw new IOException("NAS-Verbindung besteht, aber launcher_admin hat keinen Schreibzugriff auf " + share + ".");
     }
+
+    internal static bool IsCredentialError(Exception ex) => ex is Win32Exception win && (win.NativeErrorCode is 86 or 1326 or 1312 or 5) ||
+        ex is IOException io && (io.Message.Contains("Fehler 86") || io.Message.Contains("Fehler 1326"));
 
     private static bool CanWrite(string share)
     {
