@@ -141,15 +141,23 @@ public partial class MainWindow : Window
 
     private async Task EnsureNasConnectedWithPromptAsync(string share, bool admin)
     {
-        var storedPassword = NasCredentialStore.Read(share, admin);
-        try
-        {
-            await Task.Run(() => NasShareConnection.EnsureConnected(share, admin, storedPassword));
+        // Reuse an existing Windows SMB session first (including sessions opened with net use).
+        // Do not submit a username with a null password: that produces error 1326 on many NAS devices.
+        if (await Task.Run(() => NasShareConnection.HasRequiredAccess(share, admin)))
             return;
-        }
-        catch (Exception ex) when (NasShareConnection.IsCredentialError(ex))
+
+        var storedPassword = NasCredentialStore.Read(share, admin);
+        if (!string.IsNullOrEmpty(storedPassword))
         {
-            // Ask for corrected NAS credentials without ending the launcher session.
+            try
+            {
+                await Task.Run(() => NasShareConnection.EnsureConnected(share, admin, storedPassword));
+                return;
+            }
+            catch (Exception ex) when (NasShareConnection.IsCredentialError(ex))
+            {
+                // Stored password is stale: let the user correct it.
+            }
         }
 
         for (var attempt = 0; attempt < 3; attempt++)
