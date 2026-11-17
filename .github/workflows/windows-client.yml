@@ -101,13 +101,37 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
-      - name: Upload ZIP to existing GitHub Release
+      - name: Check existing GitHub Release
+        id: release_check
         if: inputs.release_tag != ''
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ inputs.release_tag }}
+          GH_REPO: ${{ github.repository }}
+          GH_API_URL: ${{ github.api_url }}
         shell: pwsh
         run: |
           if ($env:RELEASE_TAG -notmatch '^v[0-9]+\.[0-9]+\.[0-9]+$') { throw 'Release tag must look like v1.0.1' }
-          gh release view "$env:RELEASE_TAG" --repo "${{ github.repository }}" | Out-Null
-          gh release upload "$env:RELEASE_TAG" "LAN_Party_Client-win-x64.zip" "LAN_Party_Server-win-x64.zip" --repo "${{ github.repository }}" --clobber
+          $release = Invoke-WebRequest -Uri "$env:GH_API_URL/repos/$env:GH_REPO/releases/tags/$env:RELEASE_TAG" -Headers @{
+            Authorization = "Bearer $env:GH_TOKEN"
+            Accept = 'application/vnd.github+json'
+          } -SkipHttpErrorCheck
+          switch ([int]$release.StatusCode) {
+            200 { 'exists=true' >> $env:GITHUB_OUTPUT }
+            404 {
+              'exists=false' >> $env:GITHUB_OUTPUT
+              Write-Output "::warning::GitHub Release '$env:RELEASE_TAG' does not exist. Release upload skipped; client and server ZIPs remain available as workflow artifacts."
+            }
+            default { throw "GitHub Release lookup failed (HTTP $($release.StatusCode))." }
+          }
+
+      - name: Upload ZIP to existing GitHub Release
+        if: steps.release_check.outputs.exists == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ inputs.release_tag }}
+          GH_REPO: ${{ github.repository }}
+        shell: pwsh
+        run: |
+          gh release upload "$env:RELEASE_TAG" "LAN_Party_Client-win-x64.zip" "LAN_Party_Server-win-x64.zip" --repo "$env:GH_REPO" --clobber
+          if ($LASTEXITCODE -ne 0) { throw "GitHub Release asset upload failed (exit code $LASTEXITCODE)." }
