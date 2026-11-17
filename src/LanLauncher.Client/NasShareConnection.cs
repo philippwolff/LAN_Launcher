@@ -28,6 +28,12 @@ internal static class NasShareConnection
     private static extern int WNetAddConnection2(ref NetResource resource,
         string? password, string? username, int flags);
 
+    internal static bool HasRequiredAccess(string share, bool admin)
+    {
+        if (!Directory.Exists(share)) return false;
+        return !admin || CanWrite(share);
+    }
+
     internal static void EnsureConnected(string share, bool admin, string? password = null)
     {
         var account = admin ? "launcher_admin" : "launcher_reader";
