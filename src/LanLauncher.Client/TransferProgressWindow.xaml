@@ -1,7 +1,10 @@
-<Window x:Class="LanLauncher.Client.TransferProgressWindow" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" Title="Dateiübertragung" Width="760" Height="245" MinWidth="650" MinHeight="235" ResizeMode="NoResize" WindowStartupLocation="CenterOwner" ShowInTaskbar="False">
+<Window x:Class="LanLauncher.Client.TransferProgressWindow" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" Title="Dateiübertragung" Width="760" Height="270" MinWidth="650" MinHeight="255" ResizeMode="NoResize" WindowStartupLocation="CenterOwner" ShowInTaskbar="False">
 <Grid Margin="20"><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
 <TextBlock x:Name="TransferTitle" FontWeight="Bold" FontSize="14" Text="Übertragung läuft…" TextTrimming="CharacterEllipsis"/>
 <ProgressBar x:Name="TransferBar" Grid.Row="1" Height="20" Margin="0,15,0,8" Minimum="0" Maximum="100"/>
 <TextBlock x:Name="TransferDetails" Grid.Row="2" Text="0 %" TextWrapping="Wrap" Margin="0,0,0,12"/>
-<Button x:Name="CancelButton" Grid.Row="3" HorizontalAlignment="Right" Width="110" Content="Abbrechen" Click="Cancel_Click"/>
+<StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right">
+<Button x:Name="ContinueWaitingButton" Width="125" Content="Weiter warten" Click="ContinueWaiting_Click" Visibility="Collapsed" Margin="0,0,8,0"/>
+<Button x:Name="CancelButton" Width="110" Content="Abbrechen" Click="Cancel_Click"/>
+</StackPanel>
 </Grid></Window>

@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../../src/LanLauncher.Client/SmbFileOpening.cs" Link="SmbFileOpening.cs" />
+    <Compile Include="../../src/LanLauncher.Client/Logging/*.cs" Link="Logging/%(Filename)%(Extension)" />
+    <Compile Include="../../src/LanLauncher.Client/NasPackageFile.cs" Link="NasPackageFile.cs" />
+    <Compile Include="../../src/LanLauncher.Client/NasWindowsContext.cs" Link="NasWindowsContext.cs" />
+    <Compile Include="../../src/LanLauncher.Client/NasPreparation.cs" Link="NasPreparation.cs" />
+    <Compile Include="../../src/LanLauncher.Client/NasNetworkOperations.cs" Link="NasNetworkOperations.cs" />
+    <Compile Include="../../src/LanLauncher.Client/NasShareConnection.cs" Link="NasShareConnection.cs" />
+    <Compile Include="../../src/LanLauncher.Client/GamePackageTransfer.cs" Link="GamePackageTransfer.cs" />
+    <Compile Include="../../src/LanLauncher.Client/ServerTransferResolver.cs" Link="ServerTransferResolver.cs" />
+    <Compile Include="../../src/LanLauncher.Client/SmbAccessHelp.cs" Link="SmbAccessHelp.cs" />
+  </ItemGroup>
+</Project>

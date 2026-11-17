@@ -9,13 +9,16 @@ namespace LanLauncher.Client;
 
 public partial class MainWindow
 {
-    private async Task<ModConfiguration?> GetModAsync(GameInfo game)
+    private async Task<ModConfiguration?> GetModAsync(GameInfo game, CancellationToken token = default,
+        Action<string>? status = null)
     {
         if (server is null) return null;
-        using var response = await http.GetAsync(server + "/api/games/" + Uri.EscapeDataString(game.Id) + "/mod");
-        if (!response.IsSuccessStatusCode) return null;
+        using var response = await NasNetworkOperations.MetadataAsync(http,
+            server + "/api/games/" + Uri.EscapeDataString(game.Id) + "/mod", token, status);
+        if (response.StatusCode == System.Net.HttpStatusCode.NotFound) return null;
+        response.EnsureSuccessStatusCode();
         if (response.Content.Headers.ContentLength == 0) return null;
-        return await response.Content.ReadFromJsonAsync<ModConfiguration>();
+        return await response.Content.ReadFromJsonAsync<ModConfiguration>(cancellationToken: token);
     }
 
     private string? FindBaseGameFolder(ModConfiguration config)

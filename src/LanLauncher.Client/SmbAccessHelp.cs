@@ -13,7 +13,7 @@ internal static class SmbAccessHelp
     internal static string Explain(Exception error, string? share, bool write)
     {
         if (error is OperationCanceledException) return "Übertragung abgebrochen.";
-        if (error is not IOException and not UnauthorizedAccessException and not SecurityException)
+        if (error is not IOException and not UnauthorizedAccessException and not SecurityException and not System.ComponentModel.Win32Exception)
             return error.Message;
 
         var root = ShareRoot(share);
@@ -21,6 +21,17 @@ internal static class SmbAccessHelp
         var action = write ? "Schreibzugriff" : "Lesezugriff";
         var message = new StringBuilder();
         message.Append("NAS-").Append(action).Append(" fehlgeschlagen: ").Append(error.Message);
+        if (NasNetworkOperations.ErrorCode(error) is { } code)
+            message.Append(" (Windows-Fehler ").Append(code).Append(')');
+        if (NasNetworkOperations.IsTransient(error))
+            return message.Append("\nTemporärer SMB-Netzwerkfehler; kein Nachweis für falsche Zugangsdaten. " +
+                "Bestehende SMB-Verbindungen bleiben erhalten. Übertragung später erneut starten.").ToString();
+        if (NasNetworkOperations.IsAuthenticationError(error))
+            message.Append("\nDie NAS hat die Anmeldung abgelehnt.");
+        else if (NasNetworkOperations.IsPermissionError(error))
+            message.Append("\nDie Berechtigung für diese Datei oder diesen Ordner fehlt.");
+        else
+            return message.ToString();
         if (root is null) return message.ToString();
         message.Append("\n\nPrüfe die SMB-Verbindung in Windows PowerShell:");
         message.Append("\nnet use");

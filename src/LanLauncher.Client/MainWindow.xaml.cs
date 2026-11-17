@@ -1,3 +1,4 @@
+using LanLauncher.Client.Logging;
 using System.IO.Compression;
 using System.Net.Http;
 using System.Net.Http.Json;
@@ -139,19 +140,32 @@ public partial class MainWindow : Window
         if (ConnectAsAdminBox.IsChecked != true) LoginAdminKeyBox.Clear();
     }
 
-    private async Task EnsureNasConnectedWithPromptAsync(string share, bool admin)
+    private async Task EnsureNasConnectedWithPromptAsync(string share, bool admin,
+        CancellationToken token = default, Action<string>? status = null, string origin = "NAS-Anmeldung")
+    {
+        using var preparation = await NasPreparation.AcquireAsync(share, admin, origin, token, status);
+        try { await EnsureNasConnectedCoreAsync(share, admin, token, preparation); }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.ComponentModel.Win32Exception)
+        { throw new IOException(SmbAccessHelp.Explain(ex, share, write: admin), ex); }
+    }
+
+    private async Task EnsureNasConnectedCoreAsync(string share, bool admin,
+        CancellationToken token, NasPreparation preparation)
     {
         // Reuse an existing Windows SMB session first (including sessions opened with net use).
         // Do not submit a username with a null password: that produces error 1326 on many NAS devices.
-        if (await Task.Run(() => NasShareConnection.HasRequiredAccess(share, admin)))
+        if (await preparation.RunAsync("Bestehenden Zugriff prüfen", () => NasShareConnection.HasRequiredAccess(share, admin, preparation), token, readOnly: true))
             return;
 
-        var storedPassword = NasCredentialStore.Read(share, admin);
+        token.ThrowIfCancellationRequested();
+        var storedPassword = await preparation.RunAsync("Windows-Credential-Manager: CredRead für NAS-Konto", () => NasCredentialStore.Read(share, admin), token);
+        using var storedSecret = LogPrivacy.Protect(storedPassword);
         if (!string.IsNullOrEmpty(storedPassword))
         {
             try
             {
-                await Task.Run(() => NasShareConnection.EnsureConnected(share, admin, storedPassword));
+                await preparation.RunAsync("Mit gespeicherten NAS-Zugangsdaten verbinden", () =>
+                { NasShareConnection.EnsureConnected(share, admin, storedPassword, accessAlreadyChecked: true, preparation); return true; }, token);
                 return;
             }
             catch (Exception ex) when (NasShareConnection.IsCredentialError(ex))
@@ -162,20 +176,30 @@ public partial class MainWindow : Window
 
         for (var attempt = 0; attempt < 3; attempt++)
         {
+            token.ThrowIfCancellationRequested();
+            preparation.Report("NAS-Anmeldung erforderlich: Zugangsdaten im Dialog eingeben (UI wartet auf Benutzereingabe)");
             var prompt = new NasCredentialsWindow(share, admin) { Owner = this };
+            using var cancelPrompt = token.Register(() => Dispatcher.BeginInvoke(() =>
+            { if (prompt.IsVisible) prompt.Close(); }));
             if (prompt.ShowDialog() != true)
                 throw new OperationCanceledException("NAS-Anmeldung abgebrochen.");
+            token.ThrowIfCancellationRequested();
             var password = prompt.Password;
+            using var enteredSecret = LogPrivacy.Protect(password);
             try
             {
-                await Task.Run(() => NasShareConnection.EnsureConnected(share, admin, password));
+                await preparation.RunAsync("Mit eingegebenen NAS-Zugangsdaten verbinden", () =>
+                { NasShareConnection.EnsureConnected(share, admin, password, accessAlreadyChecked: true, preparation); return true; }, token);
+                token.ThrowIfCancellationRequested();
                 if (prompt.SaveInWindows)
-                    NasCredentialStore.Save(share, admin, password);
+                    await preparation.RunAsync("Windows-Credential-Manager: CredWrite für NAS-Konto", () =>
+                    { NasCredentialStore.Save(share, admin, password); return true; }, token);
                 return;
             }
             catch (Exception ex) when (NasShareConnection.IsCredentialError(ex))
             {
-                MessageBox.Show(this, "NAS-Zugangsdaten abgelehnt: " + ex.Message,
+                MessageBox.Show(this, (NasNetworkOperations.IsAuthenticationError(ex)
+                    ? "NAS-Anmeldung abgelehnt: " : "Erforderliche NAS-Berechtigung fehlt: ") + ex.Message,
                     "NAS-Anmeldung", MessageBoxButton.OK, MessageBoxImage.Warning);
             }
         }
@@ -184,6 +208,8 @@ public partial class MainWindow : Window
 
     private async void Connect_Click(object sender, RoutedEventArgs e)
     {
+        using var logOperation = ClientLog.BeginOperation("Anmeldung");
+        using var logSecret = LogPrivacy.Protect(LoginAdminKeyBox.Password);
         activeAdminKey = null;
         AdminGamesGroup.IsEnabled = false;
         try
@@ -207,9 +233,11 @@ public partial class MainWindow : Window
                 using var adminResponse = await http.SendAsync(adminCheck);
                 if (!adminResponse.IsSuccessStatusCode)
                 {
+                    ClientLog.Write(LogSeverity.WARN, "Anmeldung", "Server-Admin-Prüfung abgelehnt: HTTP " + (int)adminResponse.StatusCode);
                     StatusText.Text = "Admin-Anmeldung abgelehnt (HTTP " + (int)adminResponse.StatusCode + ").";
                     return;
                 }
+                ClientLog.Write(LogSeverity.INFO, "Anmeldung", "Server-Admin-Prüfung erfolgreich.");
                 verifiedAdminKey = suppliedKey;
             }
             using var joinRequest = new HttpRequestMessage(HttpMethod.Post, server + "/api/join")
@@ -223,12 +251,14 @@ public partial class MainWindow : Window
             {
                 serverConnected = false;
                 timer.Stop();
+                ClientLog.Write(LogSeverity.WARN, "Anmeldung", "Server-Anmeldung abgelehnt: HTTP " + (int)response.StatusCode);
                 var serverMessage = await response.Content.ReadAsStringAsync();
                 if (serverMessage.Length > 300) serverMessage = serverMessage[..300] + "…";
                 ShowOfflineLibrary("Anmeldung fehlgeschlagen (HTTP " + (int)response.StatusCode +
                     ") – " + serverMessage + " – lokale Spiele verfügbar");
                 return;
             }
+            ClientLog.Write(LogSeverity.INFO, "Server", "Server-Anmeldung erfolgreich; Rolle=" + (verifiedAdminKey is null ? "Benutzer" : "Admin"));
             serverConnected = true;
             activeAdminKey = verifiedAdminKey;
             AdminGamesGroup.IsEnabled = activeAdminKey is not null;
@@ -241,12 +271,13 @@ public partial class MainWindow : Window
                 if (capabilities.DownloadMode == "smb" && !string.IsNullOrWhiteSpace(capabilities.SmbShare))
                 {
                     var share = capabilities.SmbShare;
-                    await EnsureNasConnectedWithPromptAsync(share, activeAdminKey is not null);
+                    await EnsureNasConnectedWithPromptAsync(share, activeAdminKey is not null, origin: "Server-Anmeldung");
                 }
             }
             catch (Exception ex)
             {
                 // Keep server login active even if the optional NAS share cannot be mounted.
+                ClientLog.Write(LogSeverity.WARN, "NAS", "NAS-Anmeldung fehlgeschlagen; Server-Anmeldung bleibt bestehen.", ex);
                 nasWarning = ex.Message;
             }
             StatusText.Text = nasWarning is null
@@ -258,7 +289,7 @@ public partial class MainWindow : Window
             timer.Start();
             await RefreshAsync();
         }
-        catch (Exception ex) { serverConnected = false; timer.Stop(); ShowOfflineLibrary("Server nicht erreichbar – Offline-Modus: " + ex.Message); }
+        catch (Exception ex) { ClientLog.Write(LogSeverity.ERROR, "Server", "Server-Verbindung fehlgeschlagen.", ex); serverConnected = false; timer.Stop(); ShowOfflineLibrary("Server nicht erreichbar – Offline-Modus: " + ex.Message); }
     }
     private async Task RefreshAsync()
     {
@@ -297,6 +328,7 @@ public partial class MainWindow : Window
         }
         catch (Exception ex)
         {
+            ClientLog.Write(LogSeverity.WARN, "Server", "Server-Abfrage vorübergehend fehlgeschlagen.", ex);
             consecutiveRefreshFailures++;
             StatusText.Text = "Verbindung vorübergehend gestört (Versuch " + consecutiveRefreshFailures + ") – erneuter Abruf folgt: " + ex.Message;
             // Keep the last known library and retry on the next timer tick.
@@ -903,6 +935,8 @@ public partial class MainWindow : Window
 
     private async void Upload_Click(object sender, RoutedEventArgs e)
     {
+        using var logOperation = ClientLog.BeginOperation("Upload");
+        using var logSecret = LogPrivacy.Protect(activeAdminKey);
         if (server is null) { StatusText.Text = "Zuerst verbinden."; return; }
         try
         {
@@ -946,6 +980,8 @@ public partial class MainWindow : Window
             var capabilities = await ServerTransferResolver.DetectAsync(capabilityClient, server!, popup.Cancellation);
             if (capabilities.DownloadMode == "smb")
             {
+                await EnsureNasConnectedWithPromptAsync(capabilities.SmbShare!, admin: true, popup.Cancellation, popup.SetStatus, "Upload");
+                popup.Cancellation.ThrowIfCancellationRequested();
                 var gameId = Guid.NewGuid().ToString("N");
                 var isMod = modConfiguration is not null;
                 // Keep a recognizable package name, with a short unique suffix to avoid collisions.
@@ -1070,8 +1106,8 @@ public partial class MainWindow : Window
                 await RefreshAsync();
             }
         }
-        catch (OperationCanceledException) { StatusText.Text = "Upload abgebrochen."; }
-        catch (Exception ex) { StatusText.Text = "Upload fehlgeschlagen: " + ex.Message; }
+        catch (OperationCanceledException) { ClientLog.Write(LogSeverity.WARN, "Upload", "Upload abgebrochen."); StatusText.Text = "Upload abgebrochen."; }
+        catch (Exception ex) { ClientLog.Write(LogSeverity.ERROR, "Upload", "Upload fehlgeschlagen.", ex); StatusText.Text = "Upload fehlgeschlagen: " + ex.Message; }
         finally { activeTransfers.Remove(popup); popup.CloseAfterTransfer(); }
     }
 
@@ -1135,30 +1171,26 @@ public partial class MainWindow : Window
             return;
         }
 
-        ModConfiguration? modConfig;
-        try { modConfig = serverConnected ? await GetModAsync(game) : null; }
-        catch (Exception ex)
-        {
-            StatusText.Text = "Mod-Konfiguration nicht erreichbar: " + ex.Message;
-            return;
-        }
-        if (modConfig is not null && FindBaseGameFolder(modConfig) is null)
-        {
-            MessageBox.Show(this, "Bitte zuerst das Hauptspiel installieren.",
-                "Mod benötigt Hauptspiel", MessageBoxButton.OK, MessageBoxImage.Warning);
-            return;
-        }
-
         // Use the configured installation directory without asking every time.
         var targetFolder = Path.Combine(settings.InstallDirectory,
             string.Concat(game.Name.Select(ch => Path.GetInvalidFileNameChars().Contains(ch) ? '_' : ch)));
+        using var logOperation = ClientLog.BeginOperation("DownloadInstall");
+        using var logSecret = LogPrivacy.Protect(activeAdminKey);
         var popup = new TransferProgressWindow("Herunterladen und installieren: " + game.Name) { Owner = this };
         activeTransfers.Add(popup);
         popup.Show();
-        Directory.CreateDirectory(settings.DownloadDirectory);
         var tempPackage = Path.Combine(settings.DownloadDirectory, "LANLauncher-" + Guid.NewGuid().ToString("N") + ".part");
         try
         {
+            Directory.CreateDirectory(settings.DownloadDirectory);
+            popup.SetStatus("HTTP: Mod-Konfiguration vom Launcher-Server abfragen …");
+            var modConfig = serverConnected ? await GetModAsync(game, popup.Cancellation, popup.SetStatus) : null;
+            if (modConfig is not null && FindBaseGameFolder(modConfig) is null)
+            {
+                MessageBox.Show(this, "Bitte zuerst das Hauptspiel installieren.",
+                    "Mod benötigt Hauptspiel", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
             string fileName;
             string extension;
             if (localPackage is not null)
@@ -1175,7 +1207,8 @@ public partial class MainWindow : Window
                 fileName = await GamePackageTransfer.DownloadAsync(
                     downloadClient, server!, game.Id, tempPackage,
                     (received, total) => popup.Update(received, total, showDownloadSpeed: true),
-                    popup.Cancellation, clientId);
+                    popup.Cancellation, clientId,
+                    share => EnsureNasConnectedWithPromptAsync(share, activeAdminKey is not null, popup.Cancellation, popup.SetStatus, "Installation/Download"), popup.SetStatus, popup.SetOpeningWait);
                 extension = Path.GetExtension(fileName).ToLowerInvariant();
                 if (extension is not (".zip" or ".exe"))
                     throw new InvalidDataException("Der Server hat keinen gültigen ZIP-/EXE-Dateityp übermittelt.");
@@ -1183,6 +1216,7 @@ public partial class MainWindow : Window
     
             }
             popup.Cancellation.ThrowIfCancellationRequested();
+            ClientLog.Write(LogSeverity.INFO, "Installation", "Paketübertragung abgeschlossen; Installation wird vorbereitet.");
             popup.Finishing();
             activeTransfers.Remove(popup);
             popup.CloseAfterTransfer();
@@ -1296,6 +1330,7 @@ public partial class MainWindow : Window
                         {
                             settings.InstalledExecutables[game.Id] = installedExe.FileName;
                             settings.Save();
+                            ClientLog.Write(LogSeverity.INFO, "Installation", "Mehrstufige Installation abgeschlossen.");
                             StatusText.Text = "Mehrstufige Installation abgeschlossen: " + game.Name;
                         }
                         else
@@ -1304,6 +1339,7 @@ public partial class MainWindow : Window
                     }
                     // Archives without installers represent portable games; move them into Games.
                     Directory.Move(extractionFolder, targetFolder);
+                    ClientLog.Write(LogSeverity.INFO, "Installation", "Portables Spiel entpackt; Ziel=" + targetFolder);
                     var executable = GameExecutableFinder.FindBest(targetFolder, game.Name);
                     if (executable is null)
                     {
@@ -1359,7 +1395,7 @@ public partial class MainWindow : Window
                     if (Directory.Exists(extractionFolder))
                     {
                         try { Directory.Delete(extractionFolder, recursive: true); }
-                        catch (Exception ex) { StatusText.Text = "Temporäre Installationsdateien konnten nicht vollständig entfernt werden: " + ex.Message; }
+                        catch (Exception ex) { ClientLog.Write(LogSeverity.WARN, "Installation", "Temporäre Installationsdateien konnten nicht vollständig entfernt werden.", ex); StatusText.Text = "Temporäre Installationsdateien konnten nicht vollständig entfernt werden: " + ex.Message; }
                     }
                 }
             }
@@ -1397,14 +1433,15 @@ public partial class MainWindow : Window
                     System.Diagnostics.Process.Start(info);
                     settings.InstallerTypes[game.Id] = options.InstallerType;
                     settings.Save();
+                    ClientLog.Write(LogSeverity.INFO, "Installation", "Installationsassistent gestartet; Ziel=" + targetFolder);
                     StatusText.Text = "Installationsassistent gestartet. Zielordner im Assistenten prüfen: " + targetFolder;
                 }
                 else
                     StatusText.Text = "EXE-Installation nicht gestartet.";
             }
         }
-        catch (OperationCanceledException) { StatusText.Text = "Installation/Download abgebrochen."; }
-        catch (Exception ex) { StatusText.Text = "Installation fehlgeschlagen: " + ex.Message; }
+        catch (OperationCanceledException) { ClientLog.Write(LogSeverity.WARN, "Installation", "Installation/Download abgebrochen."); StatusText.Text = "Installation/Download abgebrochen."; }
+        catch (Exception ex) { ClientLog.Write(LogSeverity.ERROR, "Installation", "Installation fehlgeschlagen.", ex); StatusText.Text = "Installation fehlgeschlagen: " + ex.Message; }
         finally
         {
             if (File.Exists(tempPackage))
@@ -1416,6 +1453,8 @@ public partial class MainWindow : Window
     private async void Download_Click(object sender, RoutedEventArgs e)
     {
         if (server is null || GamesList.SelectedItem is not GameInfo game) { StatusText.Text = "Bitte ein Spiel auswählen."; return; }
+        using var logOperation = ClientLog.BeginOperation("Download");
+        using var logSecret = LogPrivacy.Protect(activeAdminKey);
         var popup = new TransferProgressWindow("Download: " + game.Name) { Owner = this };
         activeTransfers.Add(popup);
         popup.Show();
@@ -1425,28 +1464,30 @@ public partial class MainWindow : Window
         try
         {
             using var downloadClient = new HttpClient { Timeout = Timeout.InfiniteTimeSpan };
-            var suggested = await GamePackageTransfer.GetPackageNameAsync(
-                downloadClient, server, game.Id, popup.Cancellation);
+            var package = await GamePackageTransfer.PrepareAsync(
+                downloadClient, server, game.Id, popup.Cancellation, popup.SetStatus, resolveHttpName: true);
+            var suggested = package.Name;
             Directory.CreateDirectory(settings.DownloadDirectory);
             var dialog = new SaveFileDialog { FileName = suggested, InitialDirectory = settings.DownloadDirectory, Filter = "Alle Dateien|*.*" };
             if (dialog.ShowDialog() != true) { StatusText.Text = "Download abgebrochen."; return; }
             outputPath = dialog.FileName;
-            temporaryPath = outputPath + ".part";
-            if (File.Exists(temporaryPath))
-                throw new IOException("Eine unvollständige Download-Datei existiert bereits: " + temporaryPath);
-            await GamePackageTransfer.DownloadAsync(
-                downloadClient, server, game.Id, temporaryPath,
+            // Own a unique temporary file; cleanup must never delete a pre-existing .part.
+            temporaryPath = outputPath + ".part-" + Guid.NewGuid().ToString("N");
+            await GamePackageTransfer.DownloadPreparedAsync(
+                downloadClient, package, temporaryPath,
                 (received, total) => popup.Update(received, total, showDownloadSpeed: true),
-                popup.Cancellation, clientId);
+                popup.Cancellation, clientId,
+                    share => EnsureNasConnectedWithPromptAsync(share, activeAdminKey is not null, popup.Cancellation, popup.SetStatus, "Paket-Download"), popup.SetStatus, popup.SetOpeningWait);
             popup.Cancellation.ThrowIfCancellationRequested();
             File.Move(temporaryPath, outputPath, true);
             completed = true;
             settings.DownloadedPackages[game.Id] = outputPath;
             settings.Save();
+            ClientLog.Write(LogSeverity.INFO, "Download", "Paket vollständig gespeichert: " + outputPath);
             StatusText.Text = "Paket gespeichert: " + outputPath;
         }
-        catch (OperationCanceledException) { StatusText.Text = "Download abgebrochen."; }
-        catch (Exception ex) { StatusText.Text = "Download fehlgeschlagen: " + ex.Message; }
+        catch (OperationCanceledException) { ClientLog.Write(LogSeverity.WARN, "Download", "Download abgebrochen."); StatusText.Text = "Download abgebrochen."; }
+        catch (Exception ex) { ClientLog.Write(LogSeverity.ERROR, "Download", "Download fehlgeschlagen.", ex); StatusText.Text = "Download fehlgeschlagen: " + ex.Message; }
         finally
         {
             if (!completed && temporaryPath is not null && File.Exists(temporaryPath))

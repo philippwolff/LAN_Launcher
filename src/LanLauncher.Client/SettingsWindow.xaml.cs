@@ -2,6 +2,7 @@ using System.IO;
 using System.Diagnostics;
 using System.Windows;
 using Microsoft.Win32;
+using LanLauncher.Client.Logging;
 
 namespace LanLauncher.Client;
 
@@ -17,6 +18,8 @@ public partial class SettingsWindow : Window
         DownloadPathBox.Text = current.DownloadDirectory;
         DarkModeCheckBox.IsChecked = current.DarkMode;
         AdminModeCheckBox.IsChecked = current.RunAsAdministrator;
+        LogBudgetBox.Text = Math.Clamp(current.LogMaxTotalMiB, 2, 200).ToString();
+        Loaded += (_, _) => ThemeManager.Apply(current.DarkMode);
         UpdateRestartVisibility();
     }
 
@@ -39,6 +42,8 @@ public partial class SettingsWindow : Window
     {
         try
         {
+            if (!int.TryParse(LogBudgetBox.Text, out var logBudget) || logBudget is < 2 or > 200)
+                throw new ArgumentException("Der Protokollspeicher muss zwischen 2 und 200 MiB liegen.");
             var install = Path.GetFullPath(Environment.ExpandEnvironmentVariables(InstallPathBox.Text.Trim()));
             var download = Path.GetFullPath(Environment.ExpandEnvironmentVariables(DownloadPathBox.Text.Trim()));
             if (string.IsNullOrWhiteSpace(InstallPathBox.Text) || string.IsNullOrWhiteSpace(DownloadPathBox.Text))
@@ -49,9 +54,12 @@ public partial class SettingsWindow : Window
             {
                 InstallDirectory = install,
                 DarkMode = DarkModeCheckBox.IsChecked == true,
+                LogMaxTotalMiB = logBudget,
                 RunAsAdministrator = AdminModeCheckBox.IsChecked == true,
                 DownloadDirectory = download,
                 LastOpenedGameId = Settings.LastOpenedGameId,
+                LastSuccessfulServer = Settings.LastSuccessfulServer,
+                HiddenGameIds = new HashSet<string>(Settings.HiddenGameIds, StringComparer.OrdinalIgnoreCase),
                 InstalledExecutables = new Dictionary<string, string>(Settings.InstalledExecutables),
                 AdditionalExecutables = Settings.AdditionalExecutables.ToDictionary(x => x.Key, x => x.Value.ToList()),
                 CompatibilityModes = new Dictionary<string, string>(Settings.CompatibilityModes),
@@ -60,6 +68,7 @@ public partial class SettingsWindow : Window
                 DownloadedPackages = new Dictionary<string, string>(Settings.DownloadedPackages)
             };
             updated.Save();
+            ClientLog.Store.SetBudget(logBudget * 1024L * 1024);
             Settings = updated;
             return true;
         }

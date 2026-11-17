@@ -1,6 +1,6 @@
-<Window x:Class="LanLauncher.Client.SettingsWindow" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" Title="Einstellungen" Width="680" Height="370" MinWidth="590" MinHeight="340" WindowStartupLocation="CenterOwner" ResizeMode="CanResize">
+<Window x:Class="LanLauncher.Client.SettingsWindow" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:local="clr-namespace:LanLauncher.Client" Title="Einstellungen" Width="1050" Height="780" MinWidth="880" MinHeight="650" WindowStartupLocation="CenterOwner" ResizeMode="CanResize">
 <Grid Margin="18">
-<Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+<Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
 <TextBlock Text="Standardordner" FontSize="16" FontWeight="Bold" Margin="0,0,0,16"/>
 <Grid Grid.Row="1" Margin="0,0,0,12"><Grid.ColumnDefinitions><ColumnDefinition Width="145"/><ColumnDefinition Width="*"/><ColumnDefinition Width="105"/></Grid.ColumnDefinitions>
 <TextBlock Text="Installationsort:" VerticalAlignment="Center"/>
@@ -16,4 +16,13 @@
 <Button x:Name="RestartButton" Content="Jetzt neu starten" Width="140" Padding="6" Margin="0,0,10,0" Visibility="Collapsed" Click="Restart_Click"/><Button Content="Abbrechen" Width="105" Padding="6" Margin="0,0,10,0" Click="Cancel_Click"/>
 <Button Content="Speichern" Width="105" Padding="6" IsDefault="True" Click="Save_Click"/>
 </StackPanel></StackPanel>
+<GroupBox Grid.Row="4" Header="Diagnose &amp; Protokolle" Margin="0,14,0,0" Padding="10">
+ <DockPanel>
+  <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,8">
+   <TextBlock Text="Maximaler Protokollspeicher (MiB, 2–200):" VerticalAlignment="Center" Margin="0,0,10,0"/>
+   <TextBox x:Name="LogBudgetBox" Width="70" VerticalContentAlignment="Center"/>
+  </StackPanel>
+  <local:DiagnosticsPanel/>
+ </DockPanel>
+</GroupBox>
 </Grid></Window>
